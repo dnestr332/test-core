@@ -48,4 +48,14 @@ public final class Softly {
             SOFTLY.remove();
         }
     }
+
+    /**
+     * Clears any accumulated soft-assertion state for the current thread without asserting it.
+     * Call this defensively (e.g. in an {@code @AfterEach}) so that a test which throws before
+     * reaching {@link #assertAll()} cannot leak stale failures into the next test run on a
+     * reused thread.
+     */
+    public static void reset() {
+        SOFTLY.remove();
+    }
 }

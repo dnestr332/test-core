@@ -1,30 +1,22 @@
 package com.dnestr.mobile.assertions;
 
-import org.assertj.core.api.Assertions;
-
 public final class Hardly {
 
     private Hardly() {}
 
     public static void isTrue(boolean condition, String context) {
-        Assertions.assertThat(condition)
-                .as("%s | Condition: <%s> should be true: ", context, condition)
-                .isTrue();
+        com.dnestr.core.assertions.Hardly.isTrue(condition, context);
     }
 
     public static void isFalse(boolean condition, String context) {
-        Assertions.assertThat(condition)
-                .as("%s | Condition: <%s> should be false", context, condition)
-                .isFalse();
+        com.dnestr.core.assertions.Hardly.isFalse(condition, context);
     }
 
     public static <T> void isEqual(T actual, T expected, String context) {
-        Assertions.assertThat(actual)
-                .as("%s | The actual: <%s> is equal to: <%s>", context, actual, expected)
-                .isEqualTo(expected);
+        com.dnestr.core.assertions.Hardly.isEqual(actual, expected, context);
     }
 
     public static void fail(String errorMessage) {
-        Assertions.fail(errorMessage);
+        com.dnestr.core.assertions.Hardly.fail(errorMessage);
     }
 }

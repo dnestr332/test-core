@@ -24,12 +24,12 @@ public final class OverrideUtils {
     private static Object getObject(String value, Field field) {
         Class<?> type = field.getType();
 
-        return type == Integer.class || type == int.class
-                ? Integer.parseInt(value)
-                : type == Boolean.class || type == boolean.class
-                  ? Boolean.parseBoolean(value)
-                  : type == Long.class || type == long.class
-                    ? Long.parseLong(value)
-                    : value;
+        if (type == Integer.class || type == int.class) return Integer.parseInt(value);
+        if (type == Boolean.class || type == boolean.class) return Boolean.parseBoolean(value);
+        if (type == Long.class || type == long.class) return Long.parseLong(value);
+        if (type == String.class) return value;
+
+        throw new IllegalArgumentException(
+                "Unsupported field type for override: " + type.getName());
     }
 }

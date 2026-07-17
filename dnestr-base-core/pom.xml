@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>dnestr-test-core</artifactId>
-        <version>2.0.4</version>
+        <version>2.0.5</version>
     </parent>
 
     <artifactId>dnestr-base-core</artifactId>
@@ -52,6 +52,11 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
