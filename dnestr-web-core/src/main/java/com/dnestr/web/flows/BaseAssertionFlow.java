@@ -102,11 +102,10 @@ public abstract class BaseAssertionFlow<P extends Enum<P> & AppPage> {
 
     public void verifyTextContains(P page, PageElement element, AssertionState assertion, String partial) {
         Locator locator = resolve(page).locator(element);
-        BooleanSupplier condition = () -> elementActions
-                .text(locator)
-                .contains(partial);
+        String actual = elementActions.text(locator);
+        BooleanSupplier condition = () -> actual.contains(partial);
 
-        String msg = "%s should contain <%s>".formatted(element, partial);
+        String msg = "%s should contain <%s>, but was <%s>".formatted(element, partial, actual);
         assertBool(assertion, condition, msg);
     }
 }

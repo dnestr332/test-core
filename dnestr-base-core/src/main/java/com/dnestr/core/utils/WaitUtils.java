@@ -5,6 +5,8 @@ import org.awaitility.Awaitility;
 
 import java.time.Duration;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @Slf4j
 public final class WaitUtils {
@@ -38,7 +40,25 @@ public final class WaitUtils {
                 .ignoreExceptions()
                 .pollInterval(Duration.ofMillis(DEFAULT_POLLING))
                 .atMost(Duration.ofSeconds(seconds))
-                .until(condition::getAsBoolean);
+                .until(() -> {
+                    boolean result = condition.getAsBoolean();
+                    if (!result) log.debug("Waiting: {}", message);
+                    return result;
+                });
+    }
+
+    public static <T> T waitForValue(Supplier<T> supplier, Predicate<T> condition, long seconds, String message) {
+        return Awaitility.await()
+                .ignoreExceptions()
+                .pollInterval(Duration.ofMillis(DEFAULT_POLLING))
+                .atMost(Duration.ofSeconds(seconds))
+                .until(() -> {
+                    T value = supplier.get();
+                    if (!condition.test(value)) {
+                        log.debug("Waiting: {}", message);
+                    }
+                    return value;
+                }, condition);
     }
 
     public static void sleepSeconds(long seconds) {

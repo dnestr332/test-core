@@ -15,7 +15,6 @@ public class AppiumLocalServer {
     private AppiumDriverLocalService service;
 
     public void startLocalServer(int port) {
-
         if (isServerRunning(port)) {
             log.info("{} Appium server already running on {}", INFO_SHORT, port);
             return;

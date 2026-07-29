@@ -12,4 +12,12 @@ public final class ElementUtils {
         if (matcher.find()) return Double.parseDouble(matcher.group());
         throw new IllegalArgumentException("No numeric value found in: " + raw);
     }
+
+    public static double getStringAsDoubleReplaceCommas(String raw) {
+        Matcher matcher = Pattern.compile("[\\d,]+(?:\\.\\d+)?").matcher(raw);
+        if (matcher.find()) {
+            return Double.parseDouble(matcher.group().replace(",", ""));
+        }
+        throw new IllegalArgumentException("No numeric value found in: " + raw);
+    }
 }
