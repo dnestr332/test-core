@@ -85,12 +85,7 @@ public class TestRailCaseSyncClient {
     }
 
     public long createCase(int sectionId, String title, int templateId, String refs, Map<String, Object> customFields) {
-        Map<String, Object> body = new java.util.HashMap<>(customFields);
-        body.put("title", title);
-        body.put("template_id", templateId);
-        if (refs != null && !refs.isBlank()) {
-            body.put("refs", refs);
-        }
+        Map<String, Object> body = getPostBody(title, templateId, refs, customFields);
 
         Response response = request()
                 .body(body)
@@ -101,6 +96,17 @@ public class TestRailCaseSyncClient {
         long caseId = response.jsonPath().getLong("id");
         log.info("Created TestRail case C{} - '{}'", caseId, title);
         return caseId;
+    }
+
+    public void updateCase(long caseId, String title, int templateId, String refs, Map<String, Object> customFields) {
+        Map<String, Object> body = getPostBody(title, templateId, refs, customFields);
+
+        Response response = request()
+                .body(body)
+                .post("/index.php?/api/v2/update_case/" + caseId);
+        requireOk(response, "update_case/" + caseId);
+
+        log.info("Updated TestRail case C{} - '{}'", caseId, title);
     }
 
     /**
@@ -162,6 +168,16 @@ public class TestRailCaseSyncClient {
             throw new IllegalStateException("TestRail API call '" + call + "' failed ("
                     + response.statusCode() + "): " + response.asString());
         }
+    }
+
+    private Map<String, Object> getPostBody(String title, int templateId, String refs, Map<String, Object> customFields) {
+        Map<String, Object> body = new java.util.HashMap<>(customFields);
+        body.put("title", title);
+        body.put("template_id", templateId);
+        if (refs != null && !refs.isBlank()) {
+            body.put("refs", refs);
+        }
+        return body;
     }
 
     public record CaseField(String systemName, String label, Integer typeId) {

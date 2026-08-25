@@ -171,6 +171,47 @@ class TestRailCaseSyncClientTest {
     }
 
     @Test
+    void updateCase_postsToUpdateCaseEndpoint_withExpectedBody() {
+        String[] capturedBody = new String[1];
+        handler = exchange -> {
+            assertThat(exchange.getRequestURI().getQuery()).isEqualTo("/api/v2/update_case/321");
+            capturedBody[0] = readBody(exchange);
+            respondJson(exchange, 200, "{\"id\": 321}");
+        };
+
+        client.updateCase(321L, "My Scenario", 42, "JIRA-1", Map.of("custom_gherkin", "body text"));
+
+        assertThat(capturedBody[0])
+                .contains("\"title\":\"My Scenario\"")
+                .contains("\"template_id\":42")
+                .contains("\"refs\":\"JIRA-1\"")
+                .contains("\"custom_gherkin\":\"body text\"");
+    }
+
+    @Test
+    void updateCase_omitsRefsField_whenRefsIsBlank() {
+        String[] capturedBody = new String[1];
+        handler = exchange -> {
+            capturedBody[0] = readBody(exchange);
+            respondJson(exchange, 200, "{\"id\": 5}");
+        };
+
+        client.updateCase(5L, "Scenario", 42, null, Map.of());
+
+        assertThat(capturedBody[0]).doesNotContain("refs");
+    }
+
+    @Test
+    void updateCase_throws_whenApiReturnsError() {
+        handler = exchange -> respondJson(exchange, 400, "{\"error\":\"bad request\"}");
+
+        assertThatThrownBy(() -> client.updateCase(9L, "Scenario", 42, null, Map.of()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("update_case/9")
+                .hasMessageContaining("400");
+    }
+
+    @Test
     void resolveOrCreateSubsection_returnsExisting_whenMatchingSectionFound() {
         handler = exchange -> {
             String query = exchange.getRequestURI().getQuery();

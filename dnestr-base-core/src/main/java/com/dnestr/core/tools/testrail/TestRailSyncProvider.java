@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 public final class TestRailSyncProvider implements SyncProvider {
@@ -45,12 +46,31 @@ public final class TestRailSyncProvider implements SyncProvider {
     @Override
     public boolean shouldSync(SyncCandidate candidate) {
         return candidate.hasTag("@sync")
-                && candidate.tags().stream()
-                .noneMatch(tag -> tag.matches("(?i)@C\\d+"));
+                && existingCaseTags(candidate).size() <= 1;
     }
 
     @Override
     public SyncResult sync(SyncCandidate candidate) {
+        Map<String, Object> customFields = buildCustomFields(candidate);
+
+        List<String> caseTags = existingCaseTags(candidate);
+
+        if (!caseTags.isEmpty()) {
+            String caseTag = caseTags.getFirst();
+            long caseId = parseCaseId(caseTag);
+
+            client.updateCase(
+                    caseId,
+                    candidate.scenarioTitle(),
+                    templateId,
+                    jiraRefs(candidate),
+                    customFields
+            );
+
+            validateCreatedCase(caseId);
+
+            return new SyncResult("@C" + caseId, Set.of("@sync", caseTag));
+        }
 
         int sectionId = subsectionIdByFile.computeIfAbsent(
                 candidate.file(),
@@ -60,20 +80,6 @@ public final class TestRailSyncProvider implements SyncProvider {
                         config.parentSectionId(),
                         candidate.featureTitle()
                 )
-        );
-
-        Map<String, Object> customFields = new HashMap<>();
-
-        customFields.put(
-                gherkinField.systemName(),
-                List.of(Map.of(
-                        "content",
-                        candidate.gherkinBody()
-                ))
-        );
-
-        automationField.ifPresent(field ->
-                customFields.put(field.systemName(), 1)
         );
 
         long caseId = client.createCase(
@@ -90,6 +96,43 @@ public final class TestRailSyncProvider implements SyncProvider {
                 "@C" + caseId,
                 "@sync"
         );
+    }
+
+    private Map<String, Object> buildCustomFields(SyncCandidate candidate) {
+        Map<String, Object> customFields = new HashMap<>();
+
+        customFields.put(
+                gherkinField.systemName(),
+                List.of(Map.of(
+                        "content",
+                        toHtml(candidate.gherkinBody())
+                ))
+        );
+
+        automationField.ifPresent(field ->
+                customFields.put(field.systemName(), 1)
+        );
+
+        return customFields;
+    }
+
+    private List<String> existingCaseTags(SyncCandidate candidate) {
+        return candidate.tags().stream()
+                .filter(tag -> tag.matches("(?i)@C\\d+"))
+                .toList();
+    }
+
+    private long parseCaseId(String caseTag) {
+        return Long.parseLong(caseTag.substring(2));
+    }
+
+    private String toHtml(String gherkinBody) {
+        String escaped = gherkinBody
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
+
+        return escaped.replace("\n", "<br>\n");
     }
 
     private String jiraRefs(SyncCandidate candidate) {

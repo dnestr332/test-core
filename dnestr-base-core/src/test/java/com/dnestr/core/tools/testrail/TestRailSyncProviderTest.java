@@ -14,6 +14,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -94,17 +95,24 @@ class TestRailSyncProviderTest {
     }
 
     @Test
-    void shouldSync_false_whenAlreadyLinkedToTestRailCase() {
+    void shouldSync_true_whenAlreadyLinkedToTestRailCase() {
         TestRailSyncProvider provider = providerWithAutomationField();
 
-        assertThat(provider.shouldSync(candidate(List.of("@sync", "@C123")))).isFalse();
+        assertThat(provider.shouldSync(candidate(List.of("@sync", "@C123")))).isTrue();
     }
 
     @Test
-    void shouldSync_false_whenAlreadyLinkedToTestRailCase_lowercaseTag() {
+    void shouldSync_true_whenAlreadyLinkedToTestRailCase_lowercaseTag() {
         TestRailSyncProvider provider = providerWithAutomationField();
 
-        assertThat(provider.shouldSync(candidate(List.of("@sync", "@c456")))).isFalse();
+        assertThat(provider.shouldSync(candidate(List.of("@sync", "@c456")))).isTrue();
+    }
+
+    @Test
+    void shouldSync_false_whenMultipleCaseTagsPresent() {
+        TestRailSyncProvider provider = providerWithAutomationField();
+
+        assertThat(provider.shouldSync(candidate(List.of("@sync", "@C123", "@C456")))).isFalse();
     }
 
     @Test
@@ -138,7 +146,39 @@ class TestRailSyncProviderTest {
 
         Map<String, Object> fields = captor.getValue();
         assertThat(fields).containsEntry("automation_type", 1);
-        assertThat(fields).containsEntry("testrail_bdd_scenario", List.of(Map.of("content", GHERKIN_BODY)));
+        assertThat(fields).containsEntry("testrail_bdd_scenario",
+                List.of(Map.of("content", "Given x<br>\nWhen y<br>\nThen z")));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void sync_escapesGherkinOutlinePlaceholders_soTheyAreNotParsedAsHtmlTags() {
+        TestRailSyncProvider provider = providerWithAutomationField();
+
+        String outlineBody = "Scenario Outline: <usertype> cancels future ride\n"
+                + "Given <usertype> is logged in to the Dashboard";
+
+        SyncCandidate candidate = new SyncCandidate(
+                Path.of("features/foo.feature"), "My Feature", 0, true, null,
+                "My Scenario", outlineBody, List.of("@sync")
+        );
+
+        when(client.resolveOrCreateSubsection(7, 100, 5, "My Feature")).thenReturn(55);
+        when(client.createCase(eq(55), any(), eq(42), any(), any())).thenReturn(9L);
+        when(client.getCase(9L)).thenReturn(Map.of());
+
+        provider.sync(candidate);
+
+        ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(client).createCase(eq(55), eq("My Scenario"), eq(42), isNull(), captor.capture());
+
+        List<Map<String, Object>> gherkinSteps =
+                (List<Map<String, Object>>) captor.getValue().get("testrail_bdd_scenario");
+        String content = (String) gherkinSteps.get(0).get("content");
+
+        assertThat(content)
+                .doesNotContain("<usertype>")
+                .contains("&lt;usertype&gt;");
     }
 
     @Test
@@ -169,6 +209,55 @@ class TestRailSyncProviderTest {
         SyncResult result = provider.sync(candidate(List.of("@sync")));
 
         assertThat(result).isEqualTo(SyncResult.replace("@C9", "@sync"));
+    }
+
+    @Test
+    void sync_updatesExistingCase_whenSyncTagAddedBackToAnAlreadyLinkedScenario() {
+        TestRailSyncProvider provider = providerWithAutomationField();
+
+        when(client.getCase(9L)).thenReturn(Map.of());
+
+        provider.sync(candidate(List.of("@sync", "@C9")));
+
+        verify(client).updateCase(9L, "My Scenario", 42, null, Map.of(
+                "testrail_bdd_scenario", List.of(Map.of("content", "Given x<br>\nWhen y<br>\nThen z")),
+                "automation_type", 1
+        ));
+    }
+
+    @Test
+    void sync_doesNotCreateOrResolveSubsection_whenUpdatingExistingCase() {
+        TestRailSyncProvider provider = providerWithAutomationField();
+
+        when(client.getCase(9L)).thenReturn(Map.of());
+
+        provider.sync(candidate(List.of("@sync", "@C9")));
+
+        verify(client, Mockito.never()).resolveOrCreateSubsection(anyInt(), anyInt(), anyInt(), any());
+        verify(client, Mockito.never()).createCase(anyInt(), any(), anyInt(), any(), any());
+    }
+
+    @Test
+    void sync_returnsReplaceResult_removingSyncAndOldCaseTag_whenUpdating() {
+        TestRailSyncProvider provider = providerWithAutomationField();
+
+        when(client.getCase(9L)).thenReturn(Map.of());
+
+        SyncResult result = provider.sync(candidate(List.of("@sync", "@C9")));
+
+        assertThat(result.tagToAdd()).isEqualTo("@C9");
+        assertThat(result.tagsToRemove()).containsExactlyInAnyOrder("@sync", "@C9");
+    }
+
+    @Test
+    void sync_updatesExistingCase_whenCaseTagIsLowercase() {
+        TestRailSyncProvider provider = providerWithAutomationField();
+
+        when(client.getCase(9L)).thenReturn(Map.of());
+
+        provider.sync(candidate(List.of("@sync", "@c9")));
+
+        verify(client).updateCase(eq(9L), any(), anyInt(), any(), any());
     }
 
     @Test
