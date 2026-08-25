@@ -147,7 +147,7 @@ class TestRailSyncProviderTest {
         Map<String, Object> fields = captor.getValue();
         assertThat(fields).containsEntry("automation_type", 1);
         assertThat(fields).containsEntry("testrail_bdd_scenario",
-                List.of(Map.of("content", "Given x<br>\nWhen y<br>\nThen z")));
+                List.of(Map.of("content", GHERKIN_BODY)));
     }
 
     @Test
@@ -179,6 +179,49 @@ class TestRailSyncProviderTest {
         assertThat(content)
                 .doesNotContain("<usertype>")
                 .contains("&lt;usertype&gt;");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void sync_preservesAndAndAsteriskSteps_unchangedAsideFromPlaceholderEscaping() {
+        TestRailSyncProvider provider = providerWithAutomationField();
+
+        String outlineBody = "Scenario Outline: <UserType> cancels future ride\n"
+                + "    * system creates Regular ride for Kinship Test passenger with Facility method\n"
+                + "    Given <UserType> is logged in to the Dashboard\n"
+                + "    When user navigates to the \"Facility Passenger\" path\n"
+                + "    And user saves the count of \"Canceled Rides\" field\n"
+                + "    * system cancels an active ride\n"
+                + "    * system waits for 10 seconds\n"
+                + "    * page is refreshed 1 times\n"
+                + "    And the count of \"Canceled Rides\" field should change by 1";
+
+        SyncCandidate candidate = new SyncCandidate(
+                Path.of("features/foo.feature"), "My Feature", 0, true, null,
+                "My Scenario", outlineBody, List.of("@sync")
+        );
+
+        when(client.resolveOrCreateSubsection(7, 100, 5, "My Feature")).thenReturn(55);
+        when(client.createCase(eq(55), any(), eq(42), any(), any())).thenReturn(9L);
+        when(client.getCase(9L)).thenReturn(Map.of());
+
+        provider.sync(candidate);
+
+        ArgumentCaptor<Map<String, Object>> captor = ArgumentCaptor.forClass(Map.class);
+        verify(client).createCase(eq(55), eq("My Scenario"), eq(42), isNull(), captor.capture());
+
+        List<Map<String, Object>> gherkinSteps =
+                (List<Map<String, Object>>) captor.getValue().get("testrail_bdd_scenario");
+        String content = (String) gherkinSteps.get(0).get("content");
+
+        assertThat(content)
+                .isEqualTo(outlineBody.replace("<UserType>", "&lt;UserType&gt;"))
+                .contains("* system creates Regular ride")
+                .contains("* system cancels an active ride")
+                .contains("* system waits for 10 seconds")
+                .contains("* page is refreshed 1 times")
+                .contains("And user saves the count of \"Canceled Rides\" field")
+                .contains("And the count of \"Canceled Rides\" field should change by 1");
     }
 
     @Test
@@ -220,7 +263,7 @@ class TestRailSyncProviderTest {
         provider.sync(candidate(List.of("@sync", "@C9")));
 
         verify(client).updateCase(9L, "My Scenario", 42, null, Map.of(
-                "testrail_bdd_scenario", List.of(Map.of("content", "Given x<br>\nWhen y<br>\nThen z")),
+                "testrail_bdd_scenario", List.of(Map.of("content", GHERKIN_BODY)),
                 "automation_type", 1
         ));
     }

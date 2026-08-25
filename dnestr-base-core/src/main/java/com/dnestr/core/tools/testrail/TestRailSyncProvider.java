@@ -105,7 +105,7 @@ public final class TestRailSyncProvider implements SyncProvider {
                 gherkinField.systemName(),
                 List.of(Map.of(
                         "content",
-                        toHtml(candidate.gherkinBody())
+                        escapeHtml(candidate.gherkinBody())
                 ))
         );
 
@@ -126,13 +126,11 @@ public final class TestRailSyncProvider implements SyncProvider {
         return Long.parseLong(caseTag.substring(2));
     }
 
-    private String toHtml(String gherkinBody) {
-        String escaped = gherkinBody
+    private String escapeHtml(String gherkinBody) {
+        return gherkinBody
                 .replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;");
-
-        return escaped.replace("\n", "<br>\n");
     }
 
     private String jiraRefs(SyncCandidate candidate) {

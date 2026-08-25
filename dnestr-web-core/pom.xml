@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>dnestr-test-core</artifactId>
-        <version>2.0.9</version>
+        <version>2.0.10</version>
     </parent>
 
     <artifactId>dnestr-web-core</artifactId>
