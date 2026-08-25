@@ -24,6 +24,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <restassured.version>6.0.0</restassured.version>
+        <jackson.version>2.19.0</jackson.version>
         <commons.codec.version>1.16.1</commons.codec.version>
         <awaitility.version>4.3.0</awaitility.version>
         <assertj.version>3.27.7</assertj.version>
@@ -50,6 +51,12 @@
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>${commons.codec.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
 
             <!-- Misc utils -->

@@ -22,6 +22,11 @@
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
         </dependency>
+        <!-- JSON serialization for RestAssured request/response bodies -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
         <!-- Awaitility -->
         <dependency>
             <groupId>org.awaitility</groupId>
