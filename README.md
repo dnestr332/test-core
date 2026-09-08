@@ -1,4 +1,4 @@
-# dnestr-test-core
+# test-core
 
 Multi-module test automation core providing base utilities and specialized frameworks for Web (Playwright) and Mobile (Appium) automation.
 
@@ -6,13 +6,13 @@ Multi-module test automation core providing base utilities and specialized frame
 
 This repository is a Maven multi-module project:
 
-- **`dnestr-base-core`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API client, scenario/failure context, logging (`BaseFailureCatcher`, `BasePrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
-- **`dnestr-web-core`**: Web automation framework built on top of [Microsoft Playwright](https://playwright.dev/java/).
-- **`dnestr-mobile-core`**: Mobile automation framework built on top of [Appium](https://appium.io/) and Selenium, supporting both Android and iOS.
+- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API client, scenario/failure context, logging (`BaseFailureCatcher`, `BasePrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
+- **`web`**: Web automation framework built on top of [Microsoft Playwright](https://playwright.dev/java/).
+- **`mobile`**: Mobile automation framework built on top of [Appium](https://appium.io/) and Selenium, supporting both Android and iOS.
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `2.0.8`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `3.0.0`):
 
 ```xml
 <repositories>
@@ -25,10 +25,10 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
 <dependencies>
     <dependency>
         <groupId>com.github.dnestr332</groupId>
-        <artifactId>dnestr-base-core</artifactId>
-        <version>2.0.8</version>
+        <artifactId>base</artifactId>
+        <version>3.0.0</version>
     </dependency>
-    <!-- and/or dnestr-web-core / dnestr-mobile-core -->
+    <!-- and/or web / mobile -->
 </dependencies>
 ```
 
@@ -55,8 +55,19 @@ mvn clean install -DskipTests
 - **Install to local repository**: `mvn clean install`
 - **Run tests for a specific module**:
   ```bash
-  mvn test -pl dnestr-base-core
+  mvn test -pl base
   ```
+
+# 3.0.0
+
+## Breaking Changes
+
+- Renamed the repository from `dnestr-test-core` to `test-core` (update the JitPack multi-module groupId accordingly)
+- Renamed modules and artifacts for brevity, since the `dnestr` prefix was redundant with the `com.github.dnestr332` groupId:
+  - `dnestr-base-core` -> `base`
+  - `dnestr-web-core` -> `web`
+  - `dnestr-mobile-core` -> `mobile`
+- No package or code changes - only module/artifact names and directory layout
 
 # 2.0.8
 

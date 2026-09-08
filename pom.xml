@@ -6,16 +6,16 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.dnestr332</groupId>
-    <artifactId>dnestr-test-core</artifactId>
-    <version>2.0.10</version>
-    <name>dnestr-test-core</name>
+    <artifactId>test-core</artifactId>
+    <version>3.0.0</version>
+    <name>test-core</name>
     <packaging>pom</packaging>
     <description>Multi-module test automation core (base, web, mobile)</description>
 
     <modules>
-        <module>dnestr-base-core</module>
-        <module>dnestr-web-core</module>
-        <module>dnestr-mobile-core</module>
+        <module>base</module>
+        <module>web</module>
+        <module>mobile</module>
     </modules>
 
     <properties>
