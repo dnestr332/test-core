@@ -9,6 +9,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Raw REST client for the Azure DevOps Test Plans and Work Item Tracking APIs (api-version 7.1),
+ * used by {@link AdoSyncProvider} to create/update test cases, manage sprint suites, and link test
+ * cases to PBIs. Every call funnels through {@link #requireOk} and throws {@link IllegalStateException}
+ * on a non-2xx response — there's no retry or partial-failure handling here; a failed call fails
+ * the whole {@link AdoSyncProvider#sync} call for that scenario (caught and recorded by
+ * {@code BddSyncEngine}, not swallowed here).
+ */
 @RequiredArgsConstructor
 public final class AdoTestCaseSyncClient {
 
@@ -25,11 +33,13 @@ public final class AdoTestCaseSyncClient {
         return RestAssured.given().spec(specification);
     }
 
+    /** Returns the ID of the static test suite named {@code sprint} under the configured parent suite, creating it first if it doesn't exist yet. */
     public int resolveOrCreateSprintSuite(String sprint) {
         return findSprintSuite(sprint)
                 .orElseGet(() -> createSprintSuite(sprint));
     }
 
+    /** Creates a new ADO "Test Case" work item with {@code title} and a single action step built from {@code gherkinBody}, returning its work item ID. */
     public long createTestCase(String title, String gherkinBody) {
         List<Map<String, Object>> patch = List.of(
                 patchField(TITLE_FIELD, title),
@@ -47,6 +57,7 @@ public final class AdoTestCaseSyncClient {
         return response.jsonPath().getLong("id");
     }
 
+    /** Adds an existing test case to a test suite within the configured test plan. */
     public void addTestCaseToSuite(int suiteId, long testCaseId) {
         Response response = request()
                 .post("/%s/_apis/test/Plans/%d/suites/%d/testcases/%d?api-version=%s"
@@ -62,6 +73,7 @@ public final class AdoTestCaseSyncClient {
         requireOk(response, "add test case " + testCaseId + " to suite " + suiteId);
     }
 
+    /** Overwrites the title and action step of an existing test case's work item with {@code title}/{@code gherkinBody}. */
     public void updateTestCase(long testCaseId, String title, String gherkinBody) {
         List<Map<String, Object>> patch = List.of(
                 patchField(TITLE_FIELD, title),
@@ -77,6 +89,7 @@ public final class AdoTestCaseSyncClient {
         requireOk(response, "update test case " + testCaseId);
     }
 
+    /** Adds a "Related" work item link from the test case to the PBI, unless that link already exists (checked via {@link #hasPbiLink}). */
     public void linkTestCaseToPbi(long testCaseId, long pbiId) {
         String pbiUrl = workItemUrl(pbiId);
 
@@ -201,6 +214,7 @@ public final class AdoTestCaseSyncClient {
         return response.jsonPath().getString("url");
     }
 
+    /** Whether the test case already has a "Related" link to the PBI. */
     public boolean hasPbiLink(long testCaseId, long pbiId) {
         return hasPbiLink(testCaseId, workItemUrl(pbiId));
     }

@@ -8,6 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Raw REST client for the TestRail v2 API, used by {@link TestRailSyncProvider} to create/update
+ * cases, resolve project-specific configuration (template and custom field IDs, which vary per
+ * TestRail instance so are looked up by hint rather than hardcoded), and manage per-feature
+ * subsections. Every call funnels through {@link #requireOk} and throws {@link IllegalStateException}
+ * on a non-2xx response, with no retry — a failed call fails the whole
+ * {@link TestRailSyncProvider#sync} call for that scenario.
+ */
 @Slf4j
 public class TestRailCaseSyncClient {
 
@@ -23,12 +31,21 @@ public class TestRailCaseSyncClient {
                 .spec(specification);
     }
 
+    /** Returns the ID of the project that owns {@code suiteId}. */
     public int resolveProjectId(int suiteId) {
         Response response = request().get("/index.php?/api/v2/get_suite/" + suiteId);
         requireOk(response, "get_suite/" + suiteId);
         return response.jsonPath().getInt("project_id");
     }
 
+    /**
+     * Returns the ID of {@code projectId}'s Gherkin/BDD case template, matched by name against
+     * {@code "gherkin"}/{@code "bdd"}/{@code "behaviour driven"}/{@code "behavior driven"} — the
+     * exact template name isn't standardized across TestRail instances, so this matches loosely
+     * rather than by a fixed name.
+     *
+     * @throws IllegalStateException if no template name matches any of those hints
+     */
     public int resolveGherkinTemplateId(int projectId) {
         Response response = request().get("/index.php?/api/v2/get_templates/" + projectId);
         requireOk(response, "get_templates/" + projectId);
@@ -84,6 +101,7 @@ public class TestRailCaseSyncClient {
         return caseFieldsCache;
     }
 
+    /** Creates a new case in {@code sectionId} with {@code title}/{@code templateId}/{@code refs} plus every entry of {@code customFields}, returning its new case ID. */
     public long createCase(int sectionId, String title, int templateId, String refs, Map<String, Object> customFields) {
         Map<String, Object> body = getPostBody(title, templateId, refs, customFields);
 
@@ -98,6 +116,7 @@ public class TestRailCaseSyncClient {
         return caseId;
     }
 
+    /** Overwrites {@code caseId}'s title/template/refs plus every entry of {@code customFields}. */
     public void updateCase(long caseId, String title, int templateId, String refs, Map<String, Object> customFields) {
         Map<String, Object> body = getPostBody(title, templateId, refs, customFields);
 
@@ -143,6 +162,7 @@ public class TestRailCaseSyncClient {
         return sections != null ? sections : response.jsonPath().getList("$");
     }
 
+    /** Fetches a case's full raw field map, e.g. to verify a just-written custom field actually stuck. */
     public Map<String, Object> getCase(long caseId) {
         Response response = request()
                 .get("/index.php?/api/v2/get_case/" + caseId);
@@ -180,6 +200,7 @@ public class TestRailCaseSyncClient {
         return body;
     }
 
+    /** A resolved TestRail custom case field, as found by {@link #resolveField}/{@link #resolveRequiredField}. */
     public record CaseField(String systemName, String label, Integer typeId) {
     }
 }

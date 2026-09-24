@@ -9,11 +9,21 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
 
+/**
+ * Walks a directory tree for {@code .feature} files and hand-parses each {@code Scenario}/
+ * {@code Scenario Outline} into a {@link SyncCandidate} — a lightweight line-based scan (not a
+ * full Gherkin parser), specifically tuned to capture exactly what {@link FeatureFileRewriter}
+ * needs to safely rewrite a scenario's tag line back into the file afterward. A scenario whose own
+ * tags span more than one line is skipped with a warning, since that shape isn't rewritable by the
+ * single-line replace this tool performs.
+ */
 public final class FeatureFileScanner {
 
+    /** Result of one {@link #scan}: every parsed candidate, plus any non-fatal warnings (e.g. an unrewritable scenario that was skipped). */
     public record ScanResult(List<SyncCandidate> candidates, List<String> warnings) {
     }
 
+    /** Recursively finds every {@code .feature} file under {@code featuresRoot} (visited in sorted path order) and parses its scenarios. */
     public ScanResult scan(Path featuresRoot) {
         List<SyncCandidate> candidates = new ArrayList<>();
         List<String> warnings = new ArrayList<>();

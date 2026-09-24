@@ -12,6 +12,17 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * {@link SyncProvider} for TestRail: claims scenarios tagged {@code @sync} (a first-time-sync
+ * request) or already linked via a TestRail case-ID tag ({@code @C<id>}, TestRail's own case
+ * reference syntax), and syncs each as a TestRail case — creating one (in a per-feature-file
+ * subsection under the configured parent section, created on first use) if not yet linked,
+ * otherwise updating the existing case in place. The Gherkin body is written into a custom field
+ * (resolved by hint, not hardcoded field name, since TestRail custom fields are project-configurable),
+ * an "is automated" custom field is set if the project has one, and any {@code @JIRA-KEY}-shaped
+ * tags are joined into TestRail's {@code refs} field. Resolves the project ID, Gherkin template ID,
+ * and relevant custom fields once at construction time (one client call each) rather than per scenario.
+ */
 @Slf4j
 public final class TestRailSyncProvider implements SyncProvider {
 
@@ -43,12 +54,20 @@ public final class TestRailSyncProvider implements SyncProvider {
                         .or(() -> client.resolveField("automat"));
     }
 
+    /** Matches the TestRail tag convention: tagged {@code @sync} for a first-time request, and no more than one existing {@code @C<id>} case-reference tag. */
     @Override
     public boolean shouldSync(SyncCandidate candidate) {
         return candidate.hasTag("@sync")
                 && existingCaseTags(candidate).size() <= 1;
     }
 
+    /**
+     * Updates the existing TestRail case if {@code candidate} already carries a {@code @C<id>} tag
+     * (replacing that tag and {@code @sync} with a refreshed {@code @C<id>} tag), otherwise creates
+     * a new case in the feature's per-file subsection and returns a result that swaps {@code @sync}
+     * for the new {@code @C<id>} tag. Either way, verifies afterward via {@link #validateCreatedCase}
+     * that the Gherkin/automation fields actually stuck, logging a warning (not throwing) if not.
+     */
     @Override
     public SyncResult sync(SyncCandidate candidate) {
         Map<String, Object> customFields = buildCustomFields(candidate);

@@ -7,7 +7,7 @@
 
     <groupId>com.github.dnestr332</groupId>
     <artifactId>test-core</artifactId>
-    <version>3.0.0</version>
+    <version>3.0.1</version>
     <name>test-core</name>
     <packaging>pom</packaging>
     <description>Multi-module test automation core (base, web, mobile)</description>
@@ -141,6 +141,27 @@
                 <version>${maven.compiler.version}</version>
                 <configuration>
                     <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>resolve-mockito-agent</id>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
                 </configuration>
             </plugin>
         </plugins>

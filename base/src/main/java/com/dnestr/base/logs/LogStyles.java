@@ -1,5 +1,9 @@
 package com.dnestr.base.logs;
 
+/**
+ * ANSI color codes, emoji status icons, and their plain-text ({@code [OK]}/{@code [FAIL]}/etc.)
+ * fallbacks used by {@link BasePrettyPrinter} to format step log lines. Purely a constants holder.
+ */
 public final class LogStyles {
 
     private LogStyles() {}

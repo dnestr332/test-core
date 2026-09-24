@@ -9,8 +9,25 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Rewrites tag lines into a {@code .feature} file in place, given the line positions
+ * {@link FeatureFileScanner} recorded for each scenario and the tag changes a {@link SyncProvider}
+ * decided on (as {@link SyncResult}, carried here via {@link Update}).
+ */
 public final class FeatureFileRewriter {
 
+    /**
+     * One scenario's tag change to apply, combining its {@link SyncCandidate} position fields with
+     * a {@link SyncResult}'s tag delta.
+     *
+     * @param anchorLineIndex the line index to rewrite ({@link SyncCandidate#anchorLineIndex})
+     * @param insertNewLine   whether to insert a new tag line rather than rewrite an existing one
+     *                        ({@link SyncCandidate#insertNewLine})
+     * @param originalTagLine the scenario's existing tag line, used as the base when rewriting
+     *                        (ignored when {@code insertNewLine} is {@code true})
+     * @param tagToAdd        the tag to add ({@link SyncResult#tagToAdd})
+     * @param tagsToRemove    tags to drop from the existing line, if any ({@link SyncResult#tagsToRemove})
+     */
     public record Update(
             int anchorLineIndex,
             boolean insertNewLine,
@@ -19,6 +36,12 @@ public final class FeatureFileRewriter {
             Set<String> tagsToRemove
     ) {}
 
+    /**
+     * Applies every {@code update} to {@code file} in one read-modify-write pass: line replacements
+     * (existing tag lines) are applied first, then new-line insertions are applied from the bottom
+     * of the file upward (highest {@code anchorLineIndex} first) so that inserting a line doesn't
+     * shift the still-pending anchor indices of the insertions above it.
+     */
     public void applyUpdates(Path file, List<Update> updates) {
         List<String> lines;
 

@@ -6,6 +6,10 @@ import com.dnestr.web.logs.PrettyPrinter;
 import com.microsoft.playwright.Keyboard;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Page.WaitForConditionOptions;
+import com.microsoft.playwright.Page.WaitForFunctionOptions;
+import com.microsoft.playwright.TimeoutError;
+import com.microsoft.playwright.options.WaitForSelectorState;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -167,7 +172,8 @@ class ElementActionsTest {
     void scrollBy_passesXAndYAsArgsMap() {
         actions.scrollBy(10, 20);
 
-        ArgumentCaptor<Map> argsCaptor = ArgumentCaptor.forClass(Map.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Integer>> argsCaptor = ArgumentCaptor.forClass(Map.class);
         verify(page).evaluate(eq("args => window.scrollBy(args.x, args.y)"), argsCaptor.capture());
         assertThat(argsCaptor.getValue()).containsEntry("x", 10).containsEntry("y", 20);
     }
@@ -189,18 +195,128 @@ class ElementActionsTest {
     }
 
     @Test
-    void waitForStability_usesMutationObserverWithHardcoded400msDebounce() {
+    void setCssZoom_evaluatesScriptWithScaleArgument() {
+        actions.setCssZoom(1.5);
+
+        ArgumentCaptor<Double> scaleCaptor = ArgumentCaptor.forClass(Double.class);
+        verify(page).evaluate(contains("zoom"), scaleCaptor.capture());
+        assertThat(scaleCaptor.getValue()).isEqualTo(1.5);
+    }
+
+    @Test
+    void waitForCondition_returnsTrue_whenPageConditionResolves() {
+        BooleanSupplier condition = () -> true;
+
+        boolean result = actions.waitForCondition(condition, 1000);
+
+        assertThat(result).isTrue();
+        ArgumentCaptor<WaitForConditionOptions> optionsCaptor = ArgumentCaptor.forClass(WaitForConditionOptions.class);
+        verify(page).waitForCondition(eq(condition), optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().timeout).isEqualTo(1000.0);
+    }
+
+    @Test
+    void waitForCondition_returnsFalse_onTimeout_insteadOfThrowing() {
+        doThrow(new TimeoutError("timed out")).when(page).waitForCondition(any(), any());
+
+        boolean result = actions.waitForCondition(() -> false, 500);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isVisibleWithinTimeout_returnsTrue_andWaitsForVisibleState() {
+        boolean result = actions.isVisibleWithinTimeout(locator, 1000);
+
+        assertThat(result).isTrue();
+        ArgumentCaptor<Locator.WaitForOptions> optionsCaptor = ArgumentCaptor.forClass(Locator.WaitForOptions.class);
+        verify(locator).waitFor(optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().state).isEqualTo(WaitForSelectorState.VISIBLE);
+        assertThat(optionsCaptor.getValue().timeout).isEqualTo(1000.0);
+    }
+
+    @Test
+    void isVisibleWithinTimeout_returnsFalse_onTimeout_insteadOfThrowing() {
+        doThrow(new TimeoutError("timed out")).when(locator).waitFor(any());
+
+        boolean result = actions.isVisibleWithinTimeout(locator, 500);
+
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    void isHiddenWithinTimeout_waitsForHiddenState() {
+        boolean result = actions.isHiddenWithinTimeout(locator, 1000);
+
+        assertThat(result).isTrue();
+        ArgumentCaptor<Locator.WaitForOptions> optionsCaptor = ArgumentCaptor.forClass(Locator.WaitForOptions.class);
+        verify(locator).waitFor(optionsCaptor.capture());
+        assertThat(optionsCaptor.getValue().state).isEqualTo(WaitForSelectorState.HIDDEN);
+    }
+
+    @Test
+    void clickIfVisible_clicksAndReturnsTrue_whenLocatorAppearsInTime() {
+        boolean result = actions.clickIfVisible(locator, 1000);
+
+        assertThat(result).isTrue();
+        verify(locator).click();
+    }
+
+    @Test
+    void clickIfVisible_returnsFalseWithoutClicking_whenLocatorNeverAppears() {
+        doThrow(new TimeoutError("timed out")).when(locator).waitFor(any());
+
+        boolean result = actions.clickIfVisible(locator, 500);
+
+        assertThat(result).isFalse();
+        verify(locator, never()).click();
+    }
+
+    @Test
+    void waitForStability_noArgs_usesDefaultDebounceAndMaxWait() {
         actions.waitForStability();
 
         ArgumentCaptor<String> scriptCaptor = ArgumentCaptor.forClass(String.class);
-        verify(page).waitForFunction(scriptCaptor.capture());
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Integer>> argCaptor = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<WaitForFunctionOptions> optionsCaptor = ArgumentCaptor.forClass(WaitForFunctionOptions.class);
+        verify(page).waitForFunction(scriptCaptor.capture(), argCaptor.capture(), optionsCaptor.capture());
+
+        assertThat(argCaptor.getValue()).containsEntry("debounceMs", 400).containsEntry("maxWaitMs", 5000);
+        assertThat(optionsCaptor.getValue().timeout).isEqualTo(10000.0);
+    }
+
+    @Test
+    void waitForStability_customDebounceAndMaxWait_passesThemAsScriptArgumentsAndDerivesTimeout() {
+        actions.waitForStability(100, 2000);
+
+        ArgumentCaptor<String> scriptCaptor = ArgumentCaptor.forClass(String.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Integer>> argCaptor = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<WaitForFunctionOptions> optionsCaptor = ArgumentCaptor.forClass(WaitForFunctionOptions.class);
+        verify(page).waitForFunction(scriptCaptor.capture(), argCaptor.capture(), optionsCaptor.capture());
+
+        assertThat(argCaptor.getValue()).containsEntry("debounceMs", 100).containsEntry("maxWaitMs", 2000);
+        // Playwright-side timeout must exceed the script's own max-wait cap, or Playwright
+        // would throw a TimeoutError before the script gets a chance to resolve(true) itself.
+        assertThat(optionsCaptor.getValue().timeout).isEqualTo(7000.0);
+    }
+
+    @Test
+    void waitForStability_scriptObservesCharacterDataAndAlwaysDisconnectsViaAbsoluteCap() {
+        actions.waitForStability();
+
+        ArgumentCaptor<String> scriptCaptor = ArgumentCaptor.forClass(String.class);
+        verify(page).waitForFunction(scriptCaptor.capture(), any(), any(WaitForFunctionOptions.class));
 
         String script = scriptCaptor.getValue();
         assertThat(script).contains("MutationObserver");
-        // Locks down the current hardcoded 400ms debounce (appears for both the
-        // initial timer and the reset-on-mutation timer) -- a flakiness risk on
-        // pages with periodic DOM churn under 400ms, called out in review.
-        assertThat(script.split("400", -1)).hasSizeGreaterThanOrEqualTo(3);
+        // Plain text updates (no attribute/childList change) must still reset the debounce.
+        assertThat(script).contains("characterData: true");
+        // An absolute cap independent of the debounce timer guarantees the observer is
+        // disconnected and the promise resolves even under continuous DOM mutation.
+        assertThat(script).contains("maxWaitTimer");
+        assertThat(script).contains("observer.disconnect()");
     }
 
     @Test

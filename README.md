@@ -12,7 +12,7 @@ This repository is a Maven multi-module project:
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `3.0.0`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `3.0.1`):
 
 ```xml
 <repositories>
@@ -26,7 +26,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>base</artifactId>
-        <version>3.0.0</version>
+        <version>3.0.1</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -57,6 +57,38 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 3.0.1
+
+## Breaking Changes
+
+### Base Core
+- Renamed `VisibleState.NOT_VISIBLE` to `VisibleState.HIDDEN`
+
+## Base Core
+
+### Fixes
+- `mockito-core`'s inline mock maker now loads as a build-time `-javaagent` via Surefire instead of self-attaching dynamically, removing the JDK "dynamic agent loading" warning
+
+### Other
+- Javadoc added across `base`
+
+## Web Core
+
+### Additions
+- `ElementActions.waitForCondition`, `isVisibleWithinTimeout`, `isHiddenWithinTimeout`, `clickIfVisible` - generic, non-throwing bounded waits
+- `ElementActions.waitForStability` reworked: added an absolute max-wait cap so it can no longer hang indefinitely under continuous DOM mutation, added `characterData` observation, and made the debounce/max-wait configurable
+
+### Other
+- Javadoc added across `web`
+
+## Mobile Core
+
+### Fixes
+- `MobileDeviceUtils.swipe` now respects the requested `direction` on Android (previously always swiped up, regardless of the argument)
+
+### Other
+- Javadoc added across `mobile`
 
 # 3.0.0
 

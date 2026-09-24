@@ -101,7 +101,7 @@ class BaseAssertionFlowTest {
         when(locator.count()).thenReturn(0);
 
         assertThatNoException().isThrownBy(() ->
-                flow.verifyVisibleState(TestPage.HOME, ELEMENT, AssertionState.STRICTLY, VisibleState.NOT_VISIBLE));
+                flow.verifyVisibleState(TestPage.HOME, ELEMENT, AssertionState.STRICTLY, VisibleState.HIDDEN));
     }
 
     @Test
@@ -133,8 +133,6 @@ class BaseAssertionFlowTest {
 
     @Test
     void verifyFieldState_READ_ONLY_treatsDisabledAsReadOnly() {
-        // READ_ONLY is `isDisabled() || !isEditable()` -- a disabled field counts as
-        // read-only even without checking isEditable() at all. Documented, not changed.
         when(locator.isDisabled()).thenReturn(true);
 
         assertThatNoException().isThrownBy(() ->

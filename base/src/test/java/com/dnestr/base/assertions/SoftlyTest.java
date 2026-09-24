@@ -47,18 +47,12 @@ class SoftlyTest {
     @Order(1)
     void withoutReset_failureLeaksAcrossThreadReuse_beforeAssertAllIsReached() {
         Softly.isTrue(false, "boom");
-        // Simulate the test throwing before Softly.assertAll() is ever reached,
-        // bypassing @AfterEach's Softly.reset() call for THIS assertion only by
-        // manually re-registering the leak the fixed code must survive.
         assertThat(Softly.getSoftly().errorsCollected()).hasSize(1);
     }
 
     @Test
     @Order(2)
     void reset_clearsStateSoNextTestOnSameThreadStartsFresh() {
-        // Proves the fix: even though Order(1) left a failure registered and never
-        // called assertAll(), @AfterEach's Softly.reset() cleared it, so this test
-        // starts with a clean slate on the same (reused) thread.
         assertThat(Softly.getSoftly().errorsCollected()).isEmpty();
         Softly.assertAll();
     }

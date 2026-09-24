@@ -13,6 +13,13 @@ public class MobileValidationUtils {
 
     private MobileValidationUtils() {}
 
+    /**
+     * Whether {@code element} is enabled and interactable, platform-appropriately: on iOS, the
+     * {@code enabled} accessibility attribute alone; on Android, both {@code enabled} AND
+     * {@code clickable} (a native Android view can report enabled while still not being tappable,
+     * e.g. it's covered or its clickable flag is explicitly off). Returns {@code false} rather than
+     * throwing if the element can't be inspected (e.g. it went stale mid-check).
+     */
     public static boolean isButtonEnabled(WebElement element) {
         try {
             if (TestContext.isIos()) {
@@ -31,6 +38,13 @@ public class MobileValidationUtils {
         }
     }
 
+    /**
+     * Whether two screenshots (raw image bytes) look meaningfully different: both are downscaled to
+     * a 64×64 thumbnail, then compared by mean-squared pixel error normalized to {@code [0, 1]}
+     * against {@code threshold} — a coarse perceptual diff, not a pixel-exact comparison, so minor
+     * rendering noise (anti-aliasing, animation timing) doesn't register as a difference. Returns
+     * {@code false} (not different) if either image fails to decode, or on any other error.
+     */
     public static boolean areImagesDifferent(byte[] a, byte[] b, double threshold) {
         try {
             BufferedImage ia = ImageIO.read(new ByteArrayInputStream(a));

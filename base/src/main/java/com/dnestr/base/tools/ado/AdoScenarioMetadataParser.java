@@ -5,8 +5,23 @@ import com.dnestr.base.tools.bddsync.SyncCandidate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Extracts and validates a scenario's ADO tag convention from its raw {@link SyncCandidate} tags:
+ * exactly one {@code @S:<sprint>} tag (required), at most one {@code @tc:<id>} tag (the ADO test
+ * case this scenario already links to, if any), and any number of {@code @us:<id>} tags (PBIs/user
+ * stories to link the test case to). Throws on any malformed tag rather than silently ignoring it,
+ * since a bad ID would otherwise sync against the wrong ADO work item.
+ */
 public final class AdoScenarioMetadataParser {
 
+    /**
+     * Parses {@code candidate}'s tags into {@link AdoScenarioMetadata}.
+     *
+     * @throws IllegalStateException if there isn't exactly one {@code @S:} tag, there's more than
+     *                                one {@code @tc:} tag, any {@code @S:}/{@code @tc:}/{@code @us:}
+     *                                tag has no value after its prefix, or an {@code @us:}/{@code @tc:}
+     *                                value isn't a valid {@code long}
+     */
     public AdoScenarioMetadata parse(SyncCandidate candidate) {
         List<String> sprintTags = candidate.tagsWithPrefix("@S:");
 
