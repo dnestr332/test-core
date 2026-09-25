@@ -12,7 +12,7 @@ This repository is a Maven multi-module project:
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `3.0.1`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `3.0.2`):
 
 ```xml
 <repositories>
@@ -26,7 +26,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>base</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.2</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -57,6 +57,15 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 3.0.2
+
+## Web Core
+
+### Other
+- `BasePage.onlyMatch` now delegates to `ElementActions.waitForCondition` instead of calling `Page.waitForCondition` directly
+- Javadoc added for `BasePage`'s scoped `byRole` overloads, `onlyMatch`, and `isTextVisible`
+- Unit test coverage added for `BasePage`
 
 # 3.0.1
 
