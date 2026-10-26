@@ -4,8 +4,6 @@ import com.dnestr.mobile.context.TestContext;
 import org.openqa.selenium.WebElement;
 
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /** Element read/write helpers that account for Android/iOS differences in how a value or text is actually exposed on a {@link WebElement}. */

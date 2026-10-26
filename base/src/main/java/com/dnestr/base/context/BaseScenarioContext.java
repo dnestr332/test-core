@@ -1,6 +1,9 @@
 package com.dnestr.base.context;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -48,6 +51,35 @@ public abstract class BaseScenarioContext<K> {
         return (V) dynamicContext.get(key);
     }
 
+    /**
+     * Appends {@code value} to the list stored under the typed key {@code key}, atomically creating
+     * and storing a new list first if none exists yet (so concurrent first calls can't drop a value).
+     *
+     * @throws ClassCastException if {@code key} already holds a value that isn't a {@link List}
+     */
+    public <T> void addToList(K key, T value) {
+        addToList(context, key, value);
+    }
+
+    /** {@link #addToList(Object, Object)} for the dynamic key {@code key}. */
+    public <T> void addToList(String key, T value) {
+        addToList(dynamicContext, key, value);
+    }
+
+    /**
+     * Returns the list stored under the typed key {@code key} (the live list — changes to it are
+     * stored), or a new empty, unstored list if absent. Unchecked cast to {@code List<T>} — callers
+     * must know the actual element type.
+     */
+    public <T> List<T> getList(K key) {
+        return getList(context, key);
+    }
+
+    /** {@link #getList(Object)} for the dynamic key {@code key}. */
+    public <T> List<T> getList(String key) {
+        return getList(dynamicContext, key);
+    }
+
     /** Whether a value is currently stored under the typed key {@code key}. */
     public boolean contains(K key) {
         return context.containsKey(key);
@@ -72,5 +104,15 @@ public abstract class BaseScenarioContext<K> {
     public void clear() {
         context.clear();
         dynamicContext.clear();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <M, T> void addToList(Map<M, Object> map, M key, T value) {
+        ((List<T>) map.computeIfAbsent(key, k -> new ArrayList<>())).add(value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <M, T> List<T> getList(Map<M, Object> map, M key) {
+        return (List<T>) Optional.ofNullable(map.get(key)).orElseGet(ArrayList::new);
     }
 }

@@ -1,7 +1,6 @@
 package com.dnestr.mobile.context;
 
 import com.dnestr.base.utils.EnumUtils;
-import com.dnestr.mobile.enums.MobilePlatform;
 
 /**
  * Thread-local holder for the current test thread's target {@link MobilePlatform} and CI/local

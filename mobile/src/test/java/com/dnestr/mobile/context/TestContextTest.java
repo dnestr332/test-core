@@ -1,6 +1,5 @@
 package com.dnestr.mobile.context;
 
-import com.dnestr.mobile.enums.MobilePlatform;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 

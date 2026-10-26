@@ -9,7 +9,7 @@ import java.util.function.Supplier;
 /**
  * Mobile (Selenium/Appium {@link By}) specialization of {@code BaseFailureCatcher}: every action in
  * {@code ElementActions} routes through {@link #withFailureCapture}, which logs the action via
- * {@link PrettyPrinter} before it runs, logs success/timing after, and on failure logs the error,
+ * {@link MobilePrettyPrinter} before it runs, logs success/timing after, and on failure logs the error,
  * records it to {@code TestFailureContext}, then rethrows the original exception unchanged.
  * <p>
  * The two overloads below just fill in {@code null} for the {@code details} that doesn't apply to
@@ -17,8 +17,8 @@ import java.util.function.Supplier;
  */
 public class FailureCatcher extends BaseFailureCatcher<By> {
 
-    public FailureCatcher(PrettyPrinter prettyPrinter) {
-        super(prettyPrinter);
+    public FailureCatcher(MobilePrettyPrinter mobilePrettyPrinter) {
+        super(mobilePrettyPrinter);
     }
 
     /** For an action on a locator with no extra descriptive text that returns a value. */

@@ -8,7 +8,7 @@ import static com.dnestr.base.logs.LogStyles.*;
 /**
  * Formats the three-part step log line ({@code start}/{@code ok}/{@code fail}) shared by every
  * {@code BaseFailureCatcher}, using ANSI colors and emoji from {@link LogStyles}. {@code T} is a
- * platform's locator type; subclasses (web's and mobile's own {@code PrettyPrinter}) implement
+ * platform's locator type; subclasses ({@code WebPrettyPrinter}, {@code MobilePrettyPrinter}) implement
  * {@link #getLocatorType}/{@link #getLocatorValue} to render that platform's locator, and may
  * override {@link #extractLocatorFromMessage} to pull a locator reference back out of a failure
  * message for the extra diagnostic line in {@link #fail}.
@@ -16,7 +16,7 @@ import static com.dnestr.base.logs.LogStyles.*;
  * @param <T> the platform's locator type
  */
 @Slf4j
-public abstract class BasePrettyPrinter<T> {
+public abstract class PrettyPrinter<T> {
 
     /** Short label for {@code locator}'s kind (e.g. a Playwright locator's strategy name), shown in the {@code [TYPE]} tag of a log line. */
     protected abstract String getLocatorType(T locator);

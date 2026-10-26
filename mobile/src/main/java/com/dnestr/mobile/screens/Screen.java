@@ -1,4 +1,4 @@
-package com.dnestr.mobile.pages;
+package com.dnestr.mobile.screens;
 
 /** Implemented by a screen that has a title element; {@link BaseScreen} provides a default backed by {@link BaseScreen#title()}. */
 public interface Screen {

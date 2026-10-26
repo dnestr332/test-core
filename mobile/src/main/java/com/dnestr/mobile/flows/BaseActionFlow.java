@@ -1,7 +1,7 @@
 package com.dnestr.mobile.flows;
 
-import com.dnestr.mobile.pages.BaseScreen;
-import com.dnestr.mobile.pages.Clickable;
+import com.dnestr.mobile.screens.BaseScreen;
+import com.dnestr.mobile.screens.Clickable;
 import com.dnestr.mobile.actions.ElementActions;
 import lombok.RequiredArgsConstructor;
 

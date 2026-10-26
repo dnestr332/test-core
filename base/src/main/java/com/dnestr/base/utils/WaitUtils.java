@@ -46,7 +46,7 @@ public final class WaitUtils {
                 .atMost(Duration.ofSeconds(seconds))
                 .until(() -> {
                     boolean result = condition.getAsBoolean();
-                    if (!result) log.debug("Waiting: {}", message);
+                    if (!result) logWaiting(message);
                     return result;
                 });
     }
@@ -66,7 +66,7 @@ public final class WaitUtils {
                 .atMost(Duration.ofSeconds(seconds))
                 .until(() -> {
                     boolean result = condition.getAsBoolean();
-                    if (!result) log.debug("Waiting: {}", message);
+                    if (!result) logWaiting(message);
                     return result;
                 });
     }
@@ -86,7 +86,7 @@ public final class WaitUtils {
                 .until(() -> {
                     T value = supplier.get();
                     if (!condition.test(value)) {
-                        log.debug("Waiting: {}", message);
+                        logWaiting(message);
                     }
                     return value;
                 }, condition);
@@ -105,5 +105,9 @@ public final class WaitUtils {
             Thread.currentThread().interrupt();
             log.warn("Sleep interrupted", e);
         }
+    }
+
+    private static void logWaiting(String message) {
+        log.debug("Waiting: {}", message);
     }
 }

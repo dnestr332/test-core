@@ -7,14 +7,14 @@ import org.mockito.Mockito;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Locks down {@link PrettyPrinter}'s substring/indexOf parsing of Playwright's
+ * Locks down {@link WebPrettyPrinter}'s substring/indexOf parsing of Playwright's
  * {@code Locator#toString()} and exception messages. This parsing depends on
  * undocumented Playwright internals and is brittle across version bumps -- these
  * tests exist to catch a silent format change, not to validate "correct" behavior.
  */
-class PrettyPrinterTest {
+class WebPrettyPrinterTest {
 
-    private final PrettyPrinter printer = new PrettyPrinter();
+    private final WebPrettyPrinter printer = new WebPrettyPrinter();
 
     private Locator locatorToString(String value) {
         Locator locator = Mockito.mock(Locator.class);

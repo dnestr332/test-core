@@ -8,7 +8,7 @@
     <parent>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>test-core</artifactId>
-        <version>3.0.2</version>
+        <version>4.0.0</version>
     </parent>
 
     <artifactId>base</artifactId>

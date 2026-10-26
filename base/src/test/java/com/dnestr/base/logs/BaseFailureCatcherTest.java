@@ -13,13 +13,13 @@ import static org.mockito.Mockito.verify;
 class BaseFailureCatcherTest {
 
     static class FakeCatcher extends BaseFailureCatcher<String> {
-        FakeCatcher(BasePrettyPrinter<String> printer) {
+        FakeCatcher(PrettyPrinter<String> printer) {
             super(printer);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private final BasePrettyPrinter<String> printer = Mockito.mock(BasePrettyPrinter.class);
+    private final PrettyPrinter<String> printer = Mockito.mock(PrettyPrinter.class);
     private final FakeCatcher catcher = new FakeCatcher(printer);
 
     @AfterEach

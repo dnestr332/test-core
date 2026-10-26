@@ -1,6 +1,6 @@
 package com.dnestr.mobile.config;
 
-import com.dnestr.mobile.enums.MobilePlatform;
+import com.dnestr.mobile.context.MobilePlatform;
 
 import java.net.URL;
 

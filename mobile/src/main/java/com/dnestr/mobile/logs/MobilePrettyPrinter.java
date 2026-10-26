@@ -1,17 +1,17 @@
 package com.dnestr.mobile.logs;
 
-import com.dnestr.base.logs.BasePrettyPrinter;
+import com.dnestr.base.logs.PrettyPrinter;
 import org.openqa.selenium.By;
 
 /**
- * Mobile (Selenium/Appium {@link By}) specialization of {@code BasePrettyPrinter}: teaches the
+ * Mobile (Selenium/Appium {@link By}) specialization of {@code PrettyPrinter}: teaches the
  * shared start/ok/fail log formatting how to render a {@link By} locator and how to spot one inside
  * a Selenium exception message. Relies on Selenium's standard {@code By#toString()} shape,
  * {@code "By.<strategy>: <value>"} (e.g. {@code "By.id: submit-button"}) — more stable than the
  * undocumented Playwright format the web module's equivalent class depends on, since {@code By}'s
  * {@code toString()} format is part of Selenium's public, documented behavior.
  */
-public class PrettyPrinter extends BasePrettyPrinter<By> {
+public class MobilePrettyPrinter extends PrettyPrinter<By> {
 
     /** The part of {@code locator.toString()} before the first {@code ": "} (e.g. {@code "By.id"}); the whole string if there's no {@code ": "} to split on. */
     @Override

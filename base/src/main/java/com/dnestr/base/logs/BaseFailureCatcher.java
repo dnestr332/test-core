@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.function.Supplier;
 
 /**
- * Wraps an action with start/success/failure logging via {@link BasePrettyPrinter}, and on failure
+ * Wraps an action with start/success/failure logging via {@link PrettyPrinter}, and on failure
  * records the throwable to {@link TestFailureContext} before rethrowing it unchanged — so a caller
  * gets normal exception propagation while still leaving a trail for diagnostics (e.g. a screenshot
  * hook that reads {@code TestFailureContext.getError()}). Platform-specific subclasses (web's and
@@ -19,7 +19,7 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 public abstract class BaseFailureCatcher<L> {
 
-    private final BasePrettyPrinter<L> prettyPrinter;
+    private final PrettyPrinter<L> prettyPrinter;
 
     /**
      * Logs {@code action} starting, runs {@code supplier}, then logs and returns its result. On any

@@ -1,4 +1,4 @@
-package com.dnestr.mobile.pages;
+package com.dnestr.mobile.screens;
 
 /**
  * Marker implemented by a screen's element enum (one constant per interactive element), used with

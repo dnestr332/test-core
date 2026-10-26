@@ -1,4 +1,4 @@
-package com.dnestr.mobile.pages;
+package com.dnestr.mobile.screens;
 
 import com.dnestr.mobile.actions.ElementActions;
 import lombok.RequiredArgsConstructor;

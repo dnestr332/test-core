@@ -2,7 +2,7 @@ package com.dnestr.mobile.actions;
 
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.mobile.logs.FailureCatcher;
-import com.dnestr.mobile.logs.PrettyPrinter;
+import com.dnestr.mobile.logs.MobilePrettyPrinter;
 import com.dnestr.mobile.waits.DriverWait;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +36,7 @@ class ElementActionsTest {
 
     @BeforeEach
     void setUp() {
-        FailureCatcher failureCatcher = new FailureCatcher(new PrettyPrinter());
+        FailureCatcher failureCatcher = new FailureCatcher(new MobilePrettyPrinter());
         elementActions = new ElementActions(driverWait, fallbackActions, failureCatcher);
     }
 

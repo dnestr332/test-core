@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 
-class BasePrettyPrinterTest {
+class PrettyPrinterTest {
 
-    static class FakePrettyPrinter extends BasePrettyPrinter<String> {
+    static class FakePrettyPrinter extends PrettyPrinter<String> {
         @Override
         protected String getLocatorType(String locator) {
             return "css";

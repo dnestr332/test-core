@@ -6,13 +6,13 @@ Multi-module test automation core providing base utilities and specialized frame
 
 This repository is a Maven multi-module project:
 
-- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API client, scenario/failure context, logging (`BaseFailureCatcher`, `BasePrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
+- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API client, scenario/failure context, logging (`BaseFailureCatcher`, `PrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
 - **`web`**: Web automation framework built on top of [Microsoft Playwright](https://playwright.dev/java/).
 - **`mobile`**: Mobile automation framework built on top of [Appium](https://appium.io/) and Selenium, supporting both Android and iOS.
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `3.0.2`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.0`):
 
 ```xml
 <repositories>
@@ -26,7 +26,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>base</artifactId>
-        <version>3.0.2</version>
+        <version>4.0.0</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -57,6 +57,30 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 4.0.0
+
+## Breaking Changes
+
+### Base Core
+- `BasePrettyPrinter` -> `PrettyPrinter`
+
+### Web Core
+- `com.dnestr.web.logs.PrettyPrinter` -> `WebPrettyPrinter`
+
+### Mobile Core
+- `com.dnestr.mobile.logs.PrettyPrinter` -> `MobilePrettyPrinter`
+- `com.dnestr.mobile.pages` -> `com.dnestr.mobile.screens` (`BaseScreen`, `Screen`, `Clickable`, `Closable`)
+- `com.dnestr.mobile.enums.MobilePlatform` -> `com.dnestr.mobile.context.MobilePlatform`
+
+## Base Core
+
+### Additions
+- `CsvReaderUtils` - reads small CSV test-data files (`readRows`) and looks up a cell by key column (`cell`); supports quoted cells and a leading UTF-8 BOM
+- `BaseScenarioContext.addToList` / `getList` for accumulating values under one key, for both typed and dynamic keys
+
+### Other
+- Unit test coverage added for `CsvReaderUtils`, `WaitUtils`, the new `BaseScenarioContext` list helpers, and mobile's `MobilePrettyPrinter`
 
 # 3.0.2
 
