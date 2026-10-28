@@ -82,4 +82,33 @@ class WaitUtilsTest {
             Thread.interrupted();
         }
     }
+
+    @Test
+    void waitUntilOnCallerThread_pollsOnTheThreadThatWaits() {
+        Thread caller = Thread.currentThread();
+        AtomicInteger polls = new AtomicInteger();
+
+        WaitUtils.waitUntilOnCallerThread(() -> {
+            assertThat(Thread.currentThread()).isSameAs(caller);
+            return polls.incrementAndGet() >= 3;
+        }, 2, 10, "three polls");
+
+        assertThat(polls).hasValue(3);
+    }
+
+    @Test
+    void waitUntilOnCallerThread_timesOut_whenConditionNeverTrue() {
+        assertThatThrownBy(() -> WaitUtils.waitUntilOnCallerThread(() -> false, 1, 50, "never"))
+                .isInstanceOf(ConditionTimeoutException.class)
+                .hasMessageContaining("never");
+    }
+
+    @Test
+    void sleepSecondsWithReason_sleeps() {
+        long start = System.nanoTime();
+
+        WaitUtils.sleepSeconds(1, "the animation");
+
+        assertThat(System.nanoTime() - start).isGreaterThanOrEqualTo(1_000_000_000L);
+    }
 }

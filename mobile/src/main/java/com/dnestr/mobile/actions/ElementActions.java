@@ -2,6 +2,7 @@ package com.dnestr.mobile.actions;
 
 import com.dnestr.base.actions.ElementAction;
 import com.dnestr.mobile.logs.FailureCatcher;
+import com.dnestr.mobile.utils.AppInteractionUtils;
 import com.dnestr.mobile.utils.MobileValidationUtils;
 import com.dnestr.mobile.utils.MobileElementUtils;
 import com.dnestr.mobile.waits.DriverWait;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
 
+import java.time.Duration;
 import java.util.List;
 
 import static com.dnestr.base.actions.ElementAction.*;
@@ -165,6 +167,59 @@ public class ElementActions {
             }
         });
     }
+
+    /** Clicks the element if it shows up within the short timeout; returns whether it did. For an optional dialog or overlay. */
+    public boolean clickIfVisible(By locator) {
+        if (!isQuickVisible(locator)) return false;
+        click(locator);
+        return true;
+    }
+
+    /** Like {@link #clickIfVisible}, but gives the element up to {@code grace} to show up. */
+    public boolean clickIfAppears(By locator, Duration grace) {
+        if (!isVisible(locator, grace)) return false;
+        click(locator);
+        return true;
+    }
+
+    /**
+     * Clicks {@code target} until {@code expected} shows up, at most {@code attempts} times, giving it the short
+     * timeout after each click; returns whether it showed. For a tap the app can drop, e.g. one that lands while the
+     * keyboard is closing.
+     */
+    public boolean clickUntilVisible(By target, By expected, int attempts) {
+        for (int attempt = 0; attempt < attempts; attempt++) {
+            click(target);
+            if (isQuickVisible(expected)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Clicks {@code button} while {@code watched} is still showing, at most {@code maxClicks} times; returns whether it
+     * went away. For a screen that needs several taps to get through, such as an intro carousel.
+     */
+    public boolean clickWhileVisible(By watched, By button, int maxClicks) {
+        for (int clicks = 0; clicks < maxClicks; clicks++) {
+            if (!isQuickVisible(watched)) return true;
+            click(button);
+        }
+        return !isQuickVisible(watched);
+    }
+
+    /** Presses and holds the element's center for {@code hold}. */
+    public void longPress(By locator, Duration hold) {
+        failureCatcher.withFailureCapture(LONG_PRESS, locator, hold.toMillis() + " ms",
+                () -> AppInteractionUtils.longPress(driverWait.visible(locator), hold, fallbackActions.driver())
+        );
+    }
+
+    /** Taps the element's center twice as one gesture, so both taps land before the app can react to the first. */
+    public void doubleTap(By locator) {
+        failureCatcher.withFailureCapture(DOUBLE_TAP, locator,
+                () -> AppInteractionUtils.doubleTap(driverWait.visible(locator), fallbackActions.driver())
+        );
+    }
     //endregion
 
     //region TYPE & GET TEXT
@@ -173,6 +228,13 @@ public class ElementActions {
         failureCatcher.withFailureCapture(
                 TYPE, locator, "'" + text + "'",
                 () -> MobileElementUtils.updateValue(driverWait.clickable(locator), text)
+        );
+    }
+
+    /** Types {@code text} after the element's current content, without clicking or clearing it first. */
+    public void append(By locator, String text) {
+        failureCatcher.withFailureCapture(TYPE, locator, "+'" + text + "'",
+                () -> driverWait.visible(locator).sendKeys(text)
         );
     }
 
@@ -227,6 +289,19 @@ public class ElementActions {
         try {
             return driverWait.visible(locator).isDisplayed();
         } catch (NoSuchElementException | TimeoutException | StaleElementReferenceException ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Like {@link #isVisible}, but waits up to {@code timeout}, and an element that goes stale while it mounts is
+     * waited for again rather than read as not visible.
+     */
+    public boolean isVisible(By locator, Duration timeout) {
+        try {
+            driverWait.visible(locator, timeout);
+            return true;
+        } catch (TimeoutException ignored) {
             return false;
         }
     }

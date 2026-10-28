@@ -121,7 +121,8 @@ public class ElementActions {
     /** Scrolls the locator into the viewport if it isn't already fully visible. */
     public void scrollIntoView(Locator locator) {
         failureCatcher.withFailureCapture(SCROLL, locator,
-                () -> locator.scrollIntoViewIfNeeded());
+                () -> locator.scrollIntoViewIfNeeded()
+        );
     }
 
     /** Scrolls the page to the very top ({@code window.scrollTo(0, 0)}). */

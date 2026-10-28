@@ -15,5 +15,7 @@ public enum ElementAction {
     GET_TEXT,
     SCROLL,
     ZOOM,
-    HOVER
+    HOVER,
+    LONG_PRESS,
+    DOUBLE_TAP
 }

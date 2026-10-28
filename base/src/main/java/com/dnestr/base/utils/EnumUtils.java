@@ -67,6 +67,27 @@ public class EnumUtils {
     }
 
     /**
+     * Resolves {@code rawValue} against every enum among the permitted subclasses of the sealed {@code sealedType},
+     * normalizing it via {@link #toEnumKey} first, and returns the first constant with that name. Constant names
+     * must therefore be unique across those enums, or a later one is unreachable.
+     *
+     * @throws IllegalArgumentException if {@code sealedType} is not sealed, or no permitted enum has the constant
+     */
+    public static <T> T parseSealed(Class<T> sealedType, String rawValue) {
+        if (!sealedType.isSealed()) {
+            throw new IllegalArgumentException(sealedType.getSimpleName() + " is not a sealed type");
+        }
+        String key = toEnumKey(rawValue);
+        for (Class<?> permitted : sealedType.getPermittedSubclasses()) {
+            if (!permitted.isEnum()) continue;
+            for (Object constant : permitted.getEnumConstants()) {
+                if (((Enum<?>) constant).name().equals(key)) return sealedType.cast(constant);
+            }
+        }
+        throw new IllegalArgumentException("Unknown %s: '%s'".formatted(sealedType.getSimpleName(), rawValue));
+    }
+
+    /**
      * Normalizes free-form text into an {@code Enum.valueOf}-compatible key: trims, uppercases,
      * collapses any run of non-alphanumeric characters into a single {@code _}, and strips a
      * leading/trailing {@code _}. E.g. {@code "  read - only! "} → {@code "READ_ONLY"}. Returns

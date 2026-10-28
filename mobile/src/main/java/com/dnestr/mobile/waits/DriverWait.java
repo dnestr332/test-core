@@ -5,6 +5,7 @@ import io.appium.java_client.AppiumDriver;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.Point;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -12,6 +13,7 @@ import org.openqa.selenium.support.ui.FluentWait;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -36,9 +38,13 @@ public class DriverWait {
         this.polling = config.polling();
     }
 
-    private FluentWait<AppiumDriver> getWait(long timeout) {
+    private FluentWait<AppiumDriver> getWait(long timeoutSeconds) {
+        return getWait(Duration.ofSeconds(timeoutSeconds));
+    }
+
+    private FluentWait<AppiumDriver> getWait(Duration timeout) {
         return new FluentWait<>(driver)
-                .withTimeout(Duration.ofSeconds(timeout))
+                .withTimeout(timeout)
                 .pollingEvery(Duration.ofMillis(polling))
                 .ignoring(StaleElementReferenceException.class)
                 .ignoring(NoSuchElementException.class);
@@ -61,6 +67,34 @@ public class DriverWait {
     public boolean notVisible(By locator) {
         return getWait(shortTimeout)
                 .until(ExpectedConditions.invisibilityOfElementLocated(locator));
+    }
+
+    /** Like {@link #visible}, but waits up to {@code timeout}; an element that goes stale while it mounts is waited for again. */
+    public WebElement visible(By locator, Duration timeout) {
+        return getWait(timeout)
+                .until(ExpectedConditions.visibilityOfElementLocated(locator));
+    }
+
+    /**
+     * Waits (up to the configured long timeout) until nothing matches {@code locator}. Unlike {@link #notVisible},
+     * an element that is present but hidden still counts, and the timeout is the long one — for a spinner or overlay
+     * that unmounts when its work is done.
+     */
+    public void absent(By locator) {
+        getWait(longTimeout).until(driver -> driver.findElements(locator).isEmpty());
+    }
+
+    /**
+     * Waits (up to the configured long timeout) until two reads of the element's position, one poll apart, agree —
+     * for a sheet or modal that slides in, where a tap made while it moves lands on what was under it.
+     */
+    public WebElement untilStable(By locator) {
+        AtomicReference<Point> last = new AtomicReference<>();
+        return getWait(longTimeout).until(driver -> {
+            WebElement element = driver.findElement(locator);
+            Point now = element.getLocation();
+            return now.equals(last.getAndSet(now)) ? element : null;
+        });
     }
 
     /** Waits (up to the configured long timeout) for at least one element matching {@code locator} to be present, returning all of them. */

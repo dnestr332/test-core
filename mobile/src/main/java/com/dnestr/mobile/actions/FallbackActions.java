@@ -1,14 +1,14 @@
 package com.dnestr.mobile.actions;
 
 import com.dnestr.mobile.context.TestContext;
-import com.dnestr.mobile.utils.MobileDeviceUtils;
+import com.dnestr.mobile.utils.AppInteractionUtils;
 import com.dnestr.mobile.utils.MobileElementUtils;
 import com.dnestr.base.utils.WaitUtils;
 import io.appium.java_client.AppiumDriver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
-import org.openqa.selenium.Rectangle;
+import org.openqa.selenium.Point;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.RemoteWebElement;
 
@@ -29,6 +29,11 @@ import java.util.Map;
 public class FallbackActions {
 
     private final AppiumDriver driver;
+
+    /** The driver these actions run on, for the gestures {@code ElementActions} performs on a found element. */
+    AppiumDriver driver() {
+        return driver;
+    }
 
     /** Finds the element directly via the driver, with no wait — for use after {@link #pause}, once the UI is assumed to have settled. */
     public WebElement relocate(By locator) {
@@ -59,13 +64,10 @@ public class FallbackActions {
 
     /** Taps the geometric center of the element's bounding rect via raw coordinates, bypassing Selenium's click entirely — the last-resort fallback when even a native platform click fails. */
     public void tapByElementCenter(By locator) {
-        WebElement el = driver.findElement(locator);
+        Point center = MobileElementUtils.centerOf(driver.findElement(locator));
 
-        int centerX = el.getRect().getX() + el.getRect().getWidth() / 2;
-        int centerY = el.getRect().getY() + el.getRect().getHeight() / 2;
-
-        log.info("Fallback tap at center ({}, {}) for {}", centerX, centerY, locator);
-        MobileDeviceUtils.tapByCoordinates(centerX, centerY, driver);
+        log.info("Fallback tap at center ({}, {}) for {}", center.getX(), center.getY(), locator);
+        AppInteractionUtils.tapByCoordinates(center.getX(), center.getY(), driver);
     }
 
     /** Clicks the element via a platform-native mobile command instead of Selenium's own click: Appium's {@code mobile: clickGesture} on Android, a coordinate {@code mobile: tap} on iOS. */
@@ -73,14 +75,15 @@ public class FallbackActions {
         WebElement el = driver.findElement(locator);
 
         if (TestContext.isAndroid()) {
+            assert ((RemoteWebElement) el).getId() != null;
             driver.executeScript("mobile: clickGesture", Map.of(
                     "elementId", ((RemoteWebElement) el).getId()
             ));
         } else {
-            Rectangle r = el.getRect();
+            Point center = MobileElementUtils.centerOf(el);
             driver.executeScript("mobile: tap", Map.of(
-                    "x", r.getX() + r.getWidth() / 2,
-                    "y", r.getY() + r.getHeight() / 2
+                    "x", center.getX(),
+                    "y", center.getY()
             ));
         }
     }

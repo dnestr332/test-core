@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 
@@ -16,6 +17,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -112,5 +114,35 @@ class MobileValidationUtilsTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(image, "png", out);
         return out.toByteArray();
+    }
+
+    @Test
+    void isCheckedReadsCheckedOnAndroid() {
+        System.setProperty("platform", "ANDROID");
+        WebElement box = mock(WebElement.class);
+        when(box.getAttribute("checked")).thenReturn("true");
+
+        assertThat(MobileValidationUtils.isChecked(box)).isTrue();
+    }
+
+    @Test
+    void isCheckedReadsTheValueOnIos() {
+        System.setProperty("platform", "IOS");
+        WebElement on = mock(WebElement.class);
+        WebElement off = mock(WebElement.class);
+        when(on.getAttribute("value")).thenReturn("1");
+        when(off.getAttribute("value")).thenReturn("0");
+
+        assertThat(MobileValidationUtils.isChecked(on)).isTrue();
+        assertThat(MobileValidationUtils.isChecked(off)).isFalse();
+    }
+
+    @Test
+    void isCheckedIsFalseForAnElementThatWentStale() {
+        System.setProperty("platform", "ANDROID");
+        WebElement box = mock(WebElement.class);
+        when(box.getAttribute("checked")).thenThrow(new StaleElementReferenceException("gone"));
+
+        assertThat(MobileValidationUtils.isChecked(box)).isFalse();
     }
 }

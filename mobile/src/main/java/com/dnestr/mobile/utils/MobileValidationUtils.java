@@ -39,6 +39,19 @@ public class MobileValidationUtils {
     }
 
     /**
+     * Whether a checkbox or switch is on: Android's {@code checked} attribute, iOS's {@code value} ({@code 1},
+     * {@code true} or {@code checked}). Returns {@code false} rather than throwing if the element can't be inspected.
+     */
+    public static boolean isChecked(WebElement element) {
+        try {
+            String state = element.getAttribute(TestContext.isIos() ? "value" : "checked");
+            return "true".equalsIgnoreCase(state) || "1".equals(state) || "checked".equalsIgnoreCase(state);
+        } catch (WebDriverException e) {
+            return false;
+        }
+    }
+
+    /**
      * Whether two screenshots (raw image bytes) look meaningfully different: both are downscaled to
      * a 64×64 thumbnail, then compared by mean-squared pixel error normalized to {@code [0, 1]}
      * against {@code threshold} — a coarse perceptual diff, not a pixel-exact comparison, so minor

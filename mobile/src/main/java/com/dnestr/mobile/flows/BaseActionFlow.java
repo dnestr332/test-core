@@ -1,21 +1,46 @@
 package com.dnestr.mobile.flows;
 
-import com.dnestr.mobile.screens.BaseScreen;
-import com.dnestr.mobile.screens.Clickable;
 import com.dnestr.mobile.actions.ElementActions;
-import lombok.RequiredArgsConstructor;
+import com.dnestr.mobile.screens.BaseScreen;
+import com.dnestr.mobile.screens.BaseScreenResolver;
+import com.dnestr.mobile.screens.Clickable;
+import com.dnestr.mobile.screens.AppScreen;
 
 /**
- * Base for flow classes that act on a {@link BaseScreen} via a {@link Clickable} element reference
- * rather than a resolved locator — the web module's counterpart resolves a page enum + element
- * through a {@code BasePageResolver}; here the caller already has the target {@link BaseScreen} and
- * this class only adds the {@link Clickable} → {@code By} indirection (via
- * {@link BaseScreen#resolve}) plus the pre-tap clickability guard.
+ * Base for flow classes that act on screens without callers resolving a {@link BaseScreen} themselves — mobile's
+ * counterpart to the web module's {@code BaseActionFlow}. The public methods take a {@link AppScreen} constant,
+ * looked up through the injected {@link BaseScreenResolver}; the {@code dynamic*} methods take a screen already in hand.
+ * Subclasses add the multi-step sequences a scenario needs on top.
  */
-@RequiredArgsConstructor
 public abstract class BaseActionFlow {
 
     protected final ElementActions elementActions;
+    protected final BaseScreenResolver screenResolver;
+
+    protected BaseActionFlow(ElementActions elementActions, BaseScreenResolver screenResolver) {
+        this.elementActions = elementActions;
+        this.screenResolver = screenResolver;
+    }
+
+    /** The {@link BaseScreen} that draws {@code screen}. */
+    protected BaseScreen resolve(AppScreen screen) {
+        return screenResolver.resolveScreen(screen);
+    }
+
+    /** Clicks {@code item} on {@code screen}; see {@link #dynamicTap}. */
+    public void tap(AppScreen screen, Clickable item) {
+        dynamicTap(resolve(screen), item);
+    }
+
+    /** Types {@code value} into {@code item} on {@code screen}, replacing its content. */
+    public void type(AppScreen screen, Clickable item, String value) {
+        dynamicType(resolve(screen), item, value);
+    }
+
+    /** The text of {@code item} on {@code screen}. */
+    public String text(AppScreen screen, Clickable item) {
+        return dynamicGetText(resolve(screen), item);
+    }
 
     /**
      * Resolves {@code item} on {@code screen} and clicks it.
@@ -30,8 +55,7 @@ public abstract class BaseActionFlow {
                             .formatted(item, screen.getClass().getSimpleName())
             );
         }
-        var locator = screen.resolve(item);
-        elementActions.click(locator);
+        elementActions.click(screen.resolve(item));
     }
 
     /** Resolves {@code item} on {@code screen} and types {@code value} into it. */

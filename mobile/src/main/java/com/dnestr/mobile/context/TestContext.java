@@ -5,7 +5,7 @@ import com.dnestr.base.utils.EnumUtils;
 /**
  * Thread-local holder for the current test thread's target {@link MobilePlatform} and CI/local
  * detection, read throughout the mobile module (e.g. {@code MobileElementUtils},
- * {@code MobileValidationUtils}, {@code MobileDeviceUtils}) to branch platform-specific behavior
+ * {@code MobileValidationUtils}, {@code AppInteractionUtils}, {@code DeviceControlUtils}) to branch platform-specific behavior
  * without threading a platform parameter through every call.
  */
 public final class TestContext {

@@ -92,9 +92,39 @@ public final class WaitUtils {
                 }, condition);
     }
 
+    /** {@link #waitUntilOnCallerThread(BooleanSupplier, long, long, String)} with the default 200ms polling interval. */
+    public static void waitUntilOnCallerThread(BooleanSupplier condition, long seconds, String message) {
+        waitUntilOnCallerThread(condition, seconds, DEFAULT_POLLING, message);
+    }
+
+    /**
+     * Like {@link #waitUntil(BooleanSupplier, long, long, String)}, but polls on the calling thread, so a condition
+     * that reads thread-bound state (a scenario-scoped bean, a {@link ThreadLocal}) works. The timeout is checked
+     * between polls, so a condition that blocks holds the wait up.
+     *
+     * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
+     */
+    public static void waitUntilOnCallerThread(BooleanSupplier condition, long seconds, long pollingMillis, String message) {
+        Awaitility.await(message)
+                .pollInSameThread()
+                .pollInterval(Duration.ofMillis(pollingMillis))
+                .atMost(Duration.ofSeconds(seconds))
+                .until(() -> {
+                    boolean result = condition.getAsBoolean();
+                    if (!result) logWaiting(message);
+                    return result;
+                });
+    }
+
     /** Blocks the current thread for {@code seconds}. Prefer polling ({@link #waitUntil}) over a fixed sleep wherever the condition being waited on can be expressed as one. */
     public static void sleepSeconds(long seconds) {
         sleepMillis(seconds * 1000);
+    }
+
+    /** {@link #sleepSeconds(long)} that logs a warning naming why, so a fixed sleep stands out in the run log. */
+    public static void sleepSeconds(long seconds, String reason) {
+        log.warn("Sleeping {}s: {}", seconds, reason);
+        sleepSeconds(seconds);
     }
 
     /** Blocks the current thread for {@code millis}; if interrupted, re-sets the thread's interrupt flag and logs a warning rather than propagating {@link InterruptedException}. */

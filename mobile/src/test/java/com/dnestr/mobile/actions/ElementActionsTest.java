@@ -10,11 +10,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import io.appium.java_client.AppiumDriver;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Dimension;
+import org.openqa.selenium.Point;
+import org.openqa.selenium.Rectangle;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebElement;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -203,4 +209,124 @@ class ElementActionsTest {
         verify(element).clear();
         verify(element).sendKeys("value");
     }
+
+    //region CONDITIONAL CLICKS
+    @Test
+    void clickIfVisibleClicksAPresentElement() {
+        when(driverWait.visibleShort(locator)).thenReturn(element);
+        when(driverWait.clickable(locator)).thenReturn(element);
+
+        assertThat(elementActions.clickIfVisible(locator)).isTrue();
+        verify(element).click();
+    }
+
+    @Test
+    void clickIfVisibleLeavesAnAbsentElementAlone() {
+        when(driverWait.visibleShort(locator)).thenThrow(new TimeoutException("not there"));
+
+        assertThat(elementActions.clickIfVisible(locator)).isFalse();
+        verify(driverWait, never()).clickable(any());
+    }
+
+    @Test
+    void clickIfAppearsWaitsForTheGraceThenClicks() {
+        when(driverWait.visible(locator, Duration.ofSeconds(3))).thenReturn(element);
+        when(driverWait.clickable(locator)).thenReturn(element);
+
+        assertThat(elementActions.clickIfAppears(locator, Duration.ofSeconds(3))).isTrue();
+        verify(element).click();
+    }
+
+    @Test
+    void clickIfAppearsGivesUpAfterTheGrace() {
+        when(driverWait.visible(locator, Duration.ofSeconds(3))).thenThrow(new TimeoutException("not there"));
+
+        assertThat(elementActions.clickIfAppears(locator, Duration.ofSeconds(3))).isFalse();
+        verify(driverWait, never()).clickable(any());
+    }
+
+    @Test
+    void clickUntilVisibleClicksAgainUntilTheNextScreenShows() {
+        By next = By.id("next");
+        when(driverWait.clickable(locator)).thenReturn(element);
+        when(driverWait.visibleShort(next)).thenThrow(new TimeoutException("dropped")).thenReturn(element);
+
+        assertThat(elementActions.clickUntilVisible(locator, next, 3)).isTrue();
+        verify(element, times(2)).click();
+    }
+
+    @Test
+    void clickUntilVisibleStopsAfterItsAttempts() {
+        By next = By.id("next");
+        when(driverWait.clickable(locator)).thenReturn(element);
+        when(driverWait.visibleShort(next)).thenThrow(new TimeoutException("dropped"));
+
+        assertThat(elementActions.clickUntilVisible(locator, next, 3)).isFalse();
+        verify(element, times(3)).click();
+    }
+
+    @Test
+    void clickWhileVisibleClicksUntilTheWatchedElementIsGone() {
+        By intro = By.id("intro");
+        when(driverWait.visibleShort(intro)).thenReturn(element, element).thenThrow(new TimeoutException("gone"));
+        when(driverWait.clickable(locator)).thenReturn(element);
+
+        assertThat(elementActions.clickWhileVisible(intro, locator, 5)).isTrue();
+        verify(element, times(2)).click();
+    }
+
+    @Test
+    void clickWhileVisibleReportsAScreenThatStays() {
+        By intro = By.id("intro");
+        when(driverWait.visibleShort(intro)).thenReturn(element);
+        when(driverWait.clickable(locator)).thenReturn(element);
+
+        assertThat(elementActions.clickWhileVisible(intro, locator, 2)).isFalse();
+        verify(element, times(2)).click();
+    }
+
+    @Test
+    void isVisibleWithTimeoutIsFalseAfterATimeout() {
+        when(driverWait.visible(locator, Duration.ofSeconds(2))).thenThrow(new TimeoutException("not there"));
+
+        assertThat(elementActions.isVisible(locator, Duration.ofSeconds(2))).isFalse();
+    }
+    //endregion
+
+    //region GESTURES & TYPING
+    @Test
+    void longPressHoldsTheFoundElementOnTheActionsDriver() {
+        AppiumDriver driver = mock(AppiumDriver.class);
+        when(fallbackActions.driver()).thenReturn(driver);
+        when(driverWait.visible(locator)).thenReturn(element);
+        when(element.getRect()).thenReturn(new Rectangle(new Point(0, 0), new Dimension(100, 40)));
+
+        elementActions.longPress(locator, Duration.ofSeconds(2));
+
+        verify(driver).perform(any());
+    }
+
+    @Test
+    void doubleTapTapsTheFoundElementOnTheActionsDriver() {
+        AppiumDriver driver = mock(AppiumDriver.class);
+        when(fallbackActions.driver()).thenReturn(driver);
+        when(driverWait.visible(locator)).thenReturn(element);
+        when(element.getRect()).thenReturn(new Rectangle(new Point(0, 0), new Dimension(100, 40)));
+
+        elementActions.doubleTap(locator);
+
+        verify(driver).perform(any());
+    }
+
+    @Test
+    void appendTypesWithoutClickingOrClearing() {
+        when(driverWait.visible(locator)).thenReturn(element);
+
+        elementActions.append(locator, "42");
+
+        verify(element).sendKeys("42");
+        verify(element, never()).clear();
+        verify(element, never()).click();
+    }
+    //endregion
 }

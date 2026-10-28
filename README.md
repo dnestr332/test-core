@@ -2,6 +2,10 @@
 
 Multi-module test automation core providing base utilities and specialized frameworks for Web (Playwright) and Mobile (Appium) automation.
 
+> **New here? Read [GUIDE.md](GUIDE.md) first.** It shows the enum-driven pattern the framework is built around — one
+> generic click/type/verify step for every element of every page or screen — with a step-by-step walkthrough for web
+> and mobile, how to wire it with Spring, and what the base module offers.
+
 ## Project Structure
 
 This repository is a Maven multi-module project:
@@ -12,7 +16,7 @@ This repository is a Maven multi-module project:
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.1`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.2`):
 
 ```xml
 <repositories>
@@ -26,7 +30,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>base</artifactId>
-        <version>4.0.1</version>
+        <version>4.0.2</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -57,6 +61,68 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 4.0.2
+
+## Breaking Changes
+
+### Base Core
+- `ElementUtils` -> `TextUtils`
+
+### Mobile Core
+- `MobileDeviceUtils` is split by where the action happens: `DeviceControlUtils` controls the device and the app from outside it (lifecycle, background, deep links, orientation, keys, lock, network, location, clipboard, notifications, camera, recording); `AppInteractionUtils` acts inside the app (taps and gestures, swipe and scroll, keyboard, screen texts)
+- `MobileDeviceUtils.disableAndroidPushNotifications` is removed: without a udid adb refuses to pick a device when several are attached. Use `DeviceControlUtils.setAndroidHeadsUpNotifications(udid, enabled)`
+- `BaseActionFlow` takes `(ElementActions, BaseScreenResolver)`, as the web module's takes its page resolver
+- `BaseAssertionFlow` takes `(ElementActions, BaseScreenResolver)`, holds the element checks and takes the screen as an `AppScreen` constant, as the web module's takes a page constant
+
+## Behaviour changes
+
+### Mobile Core
+- `AppInteractionUtils.hideKeyboard` (was `MobileDeviceUtils.hideKeyboard`) does nothing when no keyboard is shown, and on Android no longer presses Back when the hide fails: Back left the screen whenever the keyboard was not really up (an emulator with a hardware keyboard reports one shown while drawing none). iOS still falls back to a tap near the top
+
+## Base Core
+
+### Additions
+- `WaitUtils.waitUntilOnCallerThread` - polls on the calling thread, for conditions that read thread-bound state (scenario-scoped beans, `ThreadLocal`s)
+- `WaitUtils.sleepSeconds(seconds, reason)` - a fixed sleep that logs why
+- `EnumUtils.parseSealed` - resolves a constant across the enums a sealed interface permits
+- `TextUtils` - reads values out of UI text: `getStringAsDouble` and `getStringAsDoubleReplaceCommas` (moved from `ElementUtils`), `getAmountAfterLast` (the amount after the last currency marker), `lastDigits` (last N digits of a phone or card number), `parseDateTime` (UI dates against several patterns, with a default year)
+- `CommonUtils` - `prettyClassName` (simple class name without a runtime proxy suffix) and `isSorted`
+- `ProcessUtils.run` - runs a command-line tool with a timeout and returns its output lines
+- `AllureReportUtils` - writes Allure's `environment.properties` and `executor.json`
+- `tools.faultproxy` (`FaultProxy`, `FaultRule`, `Fault`, `ProxiedRequest`) - an HTTP/1.1 keep-alive proxy that answers, delays, refuses or drops matched requests, for testing an app against a flaky backend
+- `ElementAction.LONG_PRESS` and `DOUBLE_TAP` log labels
+
+## Mobile Core
+
+### Additions
+- `GUIDE.md` - how the framework is meant to be used: the enum-driven pages and screens, generic steps, Spring wiring, the base module, and where each helper lives
+- `AppInteractionUtils` (inside the app):
+  - gestures: `doubleTap`, `dragAndDrop`
+  - scrolling: `scrollIntoView(id)` and `scrollIntoView(id, timeout)` (Android `UiScrollable`, iOS `mobile: scroll` by name predicate), `swipeUpUntil`, `isScrollableBySwipeUp`
+  - keyboard: `typeIntoFocusedElement`, `tapIosKeyboardDoneButton`
+  - screen content: `getPageSourceTexts`
+- `DeviceControlUtils` (outside the app):
+  - apps: `runAppInBackground`, `openDeepLink`
+  - keys and device state: `pressHome`, `pressAndroidKey`, `pressAndroidBack`, `lockDevice`, `unlockDevice`, `setAndroidConnectivity`, `setDeviceLocation`, `getClipboardText`, `getUdid`
+  - notifications: `getAndroidNotifications`, `openAndroidNotifications`, `openIosNotificationCenter`, `setAndroidHeadsUpNotifications`
+  - media: `injectAndroidEmulatorCameraImage`, `startScreenRecording`, `stopScreenRecording`
+- `AdbUtils` - Android device control through adb by udid: devices and emulators, shell and emulator console, permissions and their flags, foreground package, app version, force-stop, UiAutomator2 server reset, location services, time zone, emulator GPS fix, reboot-and-wait
+- `SimctlUtils` - booted iOS simulators, an installed app's version and push delivery (`sendIosSimulatorPush`), through `xcrun simctl`
+- `ElementActions`: `clickIfVisible`, `clickIfAppears`, `clickUntilVisible`, `clickWhileVisible`, `isVisible(locator, timeout)`, `longPress`, `doubleTap`, `append`
+- `DriverWait`: `visible(locator, timeout)`, `absent`, `untilStable`
+- `MobileElementUtils`: `centerOf`, `getId`, `closestToCenterY`, `childText`, `replaceValueByBackspace`
+- `MobileValidationUtils.isChecked`
+- `SystemActions` - taps the OS's own UI on both platforms: `tapAlertButton`, `answerPermissionPrompt`, `tapNotification` (Android's shade, iOS's Notification Center), `takeAndroidEmulatorCameraPhoto`
+- `locators.TestIdLocators` (`byTestId`, `byAnyTestId`, `firstByTestIdPrefix`, `allByTestIdPrefix` - a React Native testID on both platforms), `locators.SystemLocators` (permission, alert, notification and camera controls, including `iosNotification`), `locators.XPathUtils.literal` (quotes any text, both quote kinds included)
+- `screens.AppScreen` and `screens.BaseScreenResolver` - a screen enum and the lookup from it to its `BaseScreen`, mobile's counterpart to the web module's `AppPage` and `BasePageResolver`
+- `BaseAssertionFlow` element checks: `verifyVisible`, `verifyTextEquals`, `verifyTextContains` (re-read for up to 10 s; `textMatches` is the hook for keywords), `verifyItemState`, `verifyFieldState`
+- `BaseActionFlow`: `tap`, `type` and `text` by screen enum
+
+### Other
+- A method that works on one platform only names it (`pressAndroidBack`, `tapIosKeyboardDoneButton`) and throws `UnsupportedOperationException` on the other
+- Element-center maths in `longPress`, `doubleTap` and `FallbackActions` now goes through `MobileElementUtils.centerOf`
+- Unit test coverage added for every addition
 
 # 4.0.1
 

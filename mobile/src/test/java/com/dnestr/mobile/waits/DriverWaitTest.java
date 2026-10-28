@@ -11,10 +11,14 @@ import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoAlertPresentException;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.Point;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+
+import java.time.Duration;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -104,5 +108,47 @@ class DriverWaitTest {
 
         assertThatThrownBy(() -> driverWait.waitForAlert())
                 .isInstanceOf(TimeoutException.class);
+    }
+
+    @Test
+    void visibleWithTimeoutWaitsForTheGivenDuration() {
+        when(driver.findElement(locator))
+                .thenThrow(new StaleElementReferenceException("remounting"))
+                .thenReturn(element);
+        when(element.isDisplayed()).thenReturn(true);
+
+        assertThat(driverWait.visible(locator, Duration.ofSeconds(1))).isSameAs(element);
+    }
+
+    @Test
+    void visibleWithTimeoutTimesOutAfterTheGivenDuration() {
+        when(driver.findElement(locator)).thenThrow(new NoSuchElementException("never"));
+
+        assertThatThrownBy(() -> driverWait.visible(locator, Duration.ofMillis(50)))
+                .isInstanceOf(TimeoutException.class);
+    }
+
+    @Test
+    void absentReturnsOnceNothingMatches() {
+        when(driver.findElements(locator)).thenReturn(List.of(element), List.of());
+
+        assertThatCode(() -> driverWait.absent(locator)).doesNotThrowAnyException();
+        verify(driver, times(2)).findElements(locator);
+    }
+
+    @Test
+    void absentTimesOutWhileAHiddenElementIsStillPresent() {
+        when(driver.findElements(locator)).thenReturn(List.of(element));
+
+        assertThatThrownBy(() -> driverWait.absent(locator)).isInstanceOf(TimeoutException.class);
+    }
+
+    @Test
+    void untilStableReturnsOnceTwoReadsOfThePositionAgree() {
+        when(driver.findElement(locator)).thenReturn(element);
+        when(element.getLocation()).thenReturn(new Point(0, 900), new Point(0, 400), new Point(0, 400));
+
+        assertThat(driverWait.untilStable(locator)).isSameAs(element);
+        verify(element, times(3)).getLocation();
     }
 }
