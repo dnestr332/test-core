@@ -2,6 +2,7 @@ package com.dnestr.mobile.waits;
 
 import com.dnestr.mobile.config.WaitConfig;
 import io.appium.java_client.AppiumDriver;
+import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.StaleElementReferenceException;
@@ -90,6 +91,11 @@ public class DriverWait {
     /** Like {@link #until}, but returns the (always-{@code true}) result instead of nothing, for use as an expression. */
     public boolean untilAndReturn(BooleanSupplier condition) {
         return getWait(longTimeout).until(driver -> condition.getAsBoolean());
+    }
+
+    /** Waits (up to the configured long timeout) for a native alert (e.g. an OS permission dialog) to appear, returning it already switched-to so it can be read, accepted, or dismissed. */
+    public Alert waitForAlert() {
+        return getWait(longTimeout).until(ExpectedConditions.alertIsPresent());
     }
 
     /** Waits (up to the configured long timeout) for the element's {@code attribute} to contain {@code value} as a substring. */

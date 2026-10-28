@@ -12,7 +12,7 @@ This repository is a Maven multi-module project:
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.0`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.1`):
 
 ```xml
 <repositories>
@@ -26,7 +26,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332</groupId>
         <artifactId>base</artifactId>
-        <version>4.0.0</version>
+        <version>4.0.1</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -57,6 +57,20 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 4.0.1
+
+## Mobile Core
+
+### Additions
+- `MobileDeviceUtils.longPress` - presses and holds the center of an element for a given duration
+- `MobileDeviceUtils.drawWithFinger` - draws a continuous zigzag inside a box (e.g. to fill a signature pad); throws `IllegalArgumentException` if `strokes < 1`
+- `DriverWait.waitForAlert` - waits for a native alert (e.g. an OS permission dialog) and returns it
+
+### Other
+- `MobileDeviceUtils.tapByCoordinates` no longer pads its gesture with a leading empty pause
+- Unit test coverage added for `MobileDeviceUtils` and `DriverWait`
+- Appium bumped to 10.1.1, Jackson to 2.22.4
 
 # 4.0.0
 

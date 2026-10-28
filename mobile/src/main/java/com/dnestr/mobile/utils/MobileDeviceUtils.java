@@ -8,12 +8,17 @@ import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.Point;
+import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.ScreenOrientation;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Pause;
 import org.openqa.selenium.interactions.PointerInput;
 import org.openqa.selenium.interactions.Sequence;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static com.dnestr.base.logs.LogStyles.*;
@@ -27,16 +32,63 @@ public class MobileDeviceUtils {
     /** Performs a single tap at the given viewport coordinates via a synthetic touch pointer gesture. */
     public static void tapByCoordinates(int x, int y, AppiumDriver driver) {
         log.info("{} {} Tapping coordinates ({}, {})", INFO_SHORT, INFO, x, y);
-
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
-        Sequence tap = new Sequence(finger, 1)
+        Sequence tap = new Sequence(finger, 0)
                 .addAction(finger.createPointerMove(Duration.ZERO,
                         PointerInput.Origin.viewport(), x, y))
                 .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
                 .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
 
         driver.perform(Collections.singletonList(tap));
+    }
+
+    /** Presses and holds the center of {@code element} for {@code hold} before releasing, via a synthetic touch pointer gesture — e.g. to open a context menu or start a drag. */
+    public static void longPress(WebElement element, Duration hold, AppiumDriver driver) {
+        Rectangle rect = element.getRect();
+        Point center = rect.getPoint().moveBy(rect.getWidth() / 2, rect.getHeight() / 2);
+        log.info("{} {} Long-pressing ({}, {}) for {} ms", INFO_SHORT, INFO, center.getX(), center.getY(), hold.toMillis());
+        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+
+        Sequence press = new Sequence(finger, 0)
+                .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), center.getX(), center.getY()))
+                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
+                .addAction(new Pause(finger, hold))
+                .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+
+        driver.perform(List.of(press));
+    }
+
+    /**
+     * Draws a single continuous zigzag line inside {@code box} without lifting the finger — e.g. to
+     * fill a signature pad. The line starts at the upper-left of the box's inner area (1/8 in from
+     * the left, 1/3 down), then makes {@code strokes} 150 ms segments, alternating between the 2/3
+     * and 1/3 height marks while advancing evenly across the middle 3/4 of the box's width.
+     *
+     * @throws IllegalArgumentException if {@code strokes} is less than 1
+     */
+    public static void drawWithFinger(Rectangle box, int strokes, AppiumDriver driver) {
+        if (strokes < 1) {
+            throw new IllegalArgumentException("strokes must be at least 1, was " + strokes);
+        }
+        log.info("{} {} Drawing {} strokes in {}", INFO_SHORT, INFO, strokes, box);
+        int left = box.getX() + box.getWidth() / 8;
+        int step = box.getWidth() * 3 / 4 / strokes;
+        int top = box.getY() + box.getHeight() / 3;
+        int bottom = box.getY() + box.getHeight() * 2 / 3;
+        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+
+        Sequence stroke = new Sequence(finger, 0)
+                .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), left, top))
+                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+
+        for (int i = 1; i <= strokes; i++) {
+            stroke.addAction(finger.createPointerMove(Duration.ofMillis(150), PointerInput.Origin.viewport(),
+                    left + i * step, i % 2 == 0 ? top : bottom)
+            );
+        }
+        stroke.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
+        driver.perform(List.of(stroke));
     }
 
     /** Taps near the top-center of the screen (10% down from the top) — e.g. for dismissing a top banner or reaching a safe-area control. */
@@ -46,7 +98,7 @@ public class MobileDeviceUtils {
         int x = size.getWidth() / 2;
         int y = (int)(size.getHeight() * 0.1);
 
-        MobileDeviceUtils.tapByCoordinates(x, y, driver);
+        tapByCoordinates(x, y, driver);
     }
 
     /** Taps a point unlikely to hit any interactive element (center-horizontal, upper-quarter vertical) — e.g. to dismiss a keyboard/popover by tapping "outside" it. */
