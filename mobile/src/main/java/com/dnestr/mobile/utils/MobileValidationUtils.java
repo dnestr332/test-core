@@ -9,7 +9,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 
-public class MobileValidationUtils {
+/** Reads of an element's or a screenshot's state that differ between Android and iOS, returned as booleans for the caller to assert. */
+public final class MobileValidationUtils {
 
     private MobileValidationUtils() {}
 

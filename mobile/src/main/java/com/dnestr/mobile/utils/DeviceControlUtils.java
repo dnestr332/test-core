@@ -1,5 +1,6 @@
 package com.dnestr.mobile.utils;
 
+import com.dnestr.base.states.SwitchState;
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.mobile.actions.AppAction;
 import io.appium.java_client.AppiumDriver;
@@ -212,8 +213,9 @@ public class DeviceControlUtils {
     }
 
     /** Turns heads-up (banner) notifications on or off on the device with {@code udid}, through adb. */
-    public static void setAndroidHeadsUpNotifications(String udid, boolean enabled) {
-        AdbUtils.runAndroidShell(udid, "settings", "put", "global", "heads_up_notifications_enabled", enabled ? "1" : "0");
+    public static void setAndroidHeadsUpNotifications(String udid, SwitchState state) {
+        String value = String.valueOf(state.getValue());
+        AdbUtils.runAndroidShell(udid, "settings", "put", "global", "heads_up_notifications_enabled", value);
     }
     //endregion
 

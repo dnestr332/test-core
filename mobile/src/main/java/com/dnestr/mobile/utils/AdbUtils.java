@@ -71,10 +71,12 @@ public final class AdbUtils {
     //endregion
 
     //region PERMISSIONS
+    /** Grants a runtime permission to the app, as if the user had allowed it. */
     public static void grantAndroidPermission(String udid, String appPackage, String permission) {
         runAndroidShell(udid, "pm", "grant", appPackage, permission);
     }
 
+    /** Revokes a runtime permission from the app; Android kills the app if it is running. */
     public static void revokeAndroidPermission(String udid, String appPackage, String permission) {
         runAndroidShell(udid, "pm", "revoke", appPackage, permission);
     }
@@ -84,6 +86,7 @@ public final class AdbUtils {
         runAndroidShell(udid, withArgs(List.of("pm", "set-permission-flags", appPackage, permission), flags));
     }
 
+    /** Clears permission flags set by {@link #setAndroidPermissionFlags}, so the app may ask for the permission again. */
     public static void clearAndroidPermissionFlags(String udid, String appPackage, String permission, String... flags) {
         runAndroidShell(udid, withArgs(List.of("pm", "clear-permission-flags", appPackage, permission), flags));
     }
@@ -143,6 +146,7 @@ public final class AdbUtils {
                 .orElseThrow(() -> new IllegalStateException(appPackage + " is not installed on " + udid));
     }
 
+    /** Stops the app and its background work at once, without the app being told. */
     public static void forceStopAndroidApp(String udid, String appPackage) {
         runAndroidShell(udid, "am", "force-stop", appPackage);
     }
@@ -163,6 +167,7 @@ public final class AdbUtils {
     //endregion
 
     //region DEVICE STATE
+    /** Turns the device's location services on or off. */
     public static void setAndroidLocationServices(String udid, boolean enabled) {
         runAndroidShell(udid, "cmd", "location", "set-location-enabled", String.valueOf(enabled));
     }

@@ -43,6 +43,7 @@ public final class FaultRule {
         return Pattern.compile(regex + "$");
     }
 
+    /** What this rule does to a matching request. */
     public Fault fault() {
         return fault;
     }

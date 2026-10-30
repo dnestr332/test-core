@@ -16,7 +16,7 @@ This repository is a Maven multi-module project:
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.2`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.3`):
 
 ```xml
 <repositories>
@@ -28,9 +28,9 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
 
 <dependencies>
     <dependency>
-        <groupId>com.github.dnestr332</groupId>
+        <groupId>com.github.dnestr332.test-core</groupId>
         <artifactId>base</artifactId>
-        <version>4.0.2</version>
+        <version>4.0.3</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -61,6 +61,36 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 4.0.3
+
+## Breaking Changes
+
+### Mobile Core
+- `DeviceControlUtils.setAndroidHeadsUpNotifications(udid, SwitchState)` takes a `SwitchState` instead of a `boolean`
+- `MobileElementUtils` and `MobileValidationUtils` are `final`
+
+## Behaviour changes
+
+### Mobile Core
+- `AppInteractionUtils.hideKeyboard` on iOS presses the keyboard's own Return or Done key when WebDriverAgent cannot dismiss it (React Native's default keyboard has no other way out), and taps near the top only if the keyboard is still up. Next, Go and Search are never pressed, since they move focus or submit
+- `AppInteractionUtils` builds no locators of its own: system UI comes from `SystemLocators`, test ids from `TestIdLocators`
+
+## Base Core
+
+### Additions
+- `states.ValidState` - `VALID` / `INVALID`, for a field's validity
+
+## Mobile Core
+
+### Additions
+- `SystemLocators.iosKeyboardDismissKey` (the keyboard's Return or Done key) and `iosKeyboardDoneButton` (Done on the keyboard's toolbar)
+- `TestIdLocators.iosTestIdPredicate`, `iosByTestIdPredicate` and `androidScrollIntoViewByTestId`, used by `AppInteractionUtils.scrollIntoView`
+
+## Other
+- Javadoc on every public type and method
+- README's dependency snippet uses JitPack's multi-module group id, `com.github.dnestr332.test-core`
+- Dependencies: Appium java-client 11.0.0, Selenium 4.52.0, Playwright 1.64.0, REST Assured 6.3.0, commons-codec 1.23.0, SLF4J 2.0.20, Lombok 1.18.48; tests on JUnit 6.1.3 and Mockito 5.24.0; maven-compiler-plugin 3.16.0. None of the resolved dependencies has a known vulnerability in OSV
 
 # 4.0.2
 

@@ -4,7 +4,6 @@ import io.appium.java_client.service.local.AppiumDriverLocalService;
 import io.appium.java_client.service.local.AppiumServiceBuilder;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.OutputStream;
 import java.net.Socket;
 
 import static com.dnestr.base.logs.LogStyles.*;
@@ -33,12 +32,8 @@ public class AppiumLocalServer {
                         .withIPAddress("127.0.0.1")
                         .usingPort(port)
                         .withArgument(() -> "--log-level", "error")
-                        .withLogOutput(new OutputStream() {
-                            @Override
-                            public void write(int b) {
-                            }
-                        })
         );
+        service.clearOutPutStreams();
 
         service.start();
         log.info("{} Appium server started on {}", OK_SHORT, port);

@@ -50,4 +50,16 @@ class SystemLocatorsTest {
         assertThat(SystemLocators.iosNotification("Driver's documents"))
                 .isEqualTo(AppiumBy.iOSNsPredicateString("label CONTAINS[c] 'Driver\\'s documents'"));
     }
+
+    @Test
+    void iosKeyboardDismissKeyIsTheKeyboardsReturnOrDoneKey() {
+        assertThat(SystemLocators.iosKeyboardDismissKey()).isEqualTo(AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeKeyboard/**/XCUIElementTypeButton[`name IN {'Return', 'return', 'Done', 'done'}`]"));
+    }
+
+    @Test
+    void iosKeyboardDoneButtonIsTheToolbarDone() {
+        assertThat(SystemLocators.iosKeyboardDoneButton()).isEqualTo(AppiumBy.iOSNsPredicateString(
+                "name == 'Done' AND type IN {'XCUIElementTypeButton', 'XCUIElementTypeStaticText'}"));
+    }
 }

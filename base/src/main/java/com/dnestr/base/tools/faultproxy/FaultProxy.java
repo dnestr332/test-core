@@ -62,10 +62,12 @@ public final class FaultProxy implements AutoCloseable {
         return proxy;
     }
 
+    /** The port the proxy listens on. */
     public int port() {
         return server.getLocalPort();
     }
 
+    /** Adds a rule after the existing ones; the first rule that matches a request applies. */
     public void addRule(FaultRule rule) {
         rules.add(rule);
         log.info("Fault proxy rule added: {}", rule);
@@ -77,14 +79,17 @@ public final class FaultProxy implements AutoCloseable {
         log.info("Fault proxy rule added first: {}", rule);
     }
 
+    /** Removes every rule, so every request is forwarded untouched. */
     public void clearRules() {
         rules.clear();
     }
 
+    /** A copy of the requests seen since the last {@link #clearTraffic}, oldest first. */
     public List<ProxiedRequest> traffic() {
         return List.copyOf(traffic);
     }
 
+    /** Forgets the requests seen so far. */
     public void clearTraffic() {
         traffic.clear();
     }

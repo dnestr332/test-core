@@ -2,6 +2,7 @@ package com.dnestr.mobile.utils;
 
 import com.dnestr.mobile.actions.AppAction;
 import com.dnestr.mobile.context.TestContext;
+import com.dnestr.mobile.locators.SystemLocators;
 import io.appium.java_client.AppiumBy;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
@@ -371,6 +372,33 @@ class AppInteractionUtilsTest {
     }
 
     @Test
+    void hideKeyboardOnIosPressesTheKeyboardsReturnKeyWhenTheHideFails() {
+        System.setProperty("platform", "IOS");
+        when(iosDriver.isKeyboardShown()).thenReturn(true, false);
+        doThrow(new WebDriverException("Did not know how to dismiss the keyboard")).when(iosDriver).hideKeyboard();
+        when(iosDriver.findElements(SystemLocators.iosKeyboardDismissKey())).thenReturn(List.of(element));
+
+        AppInteractionUtils.hideKeyboard(iosDriver);
+
+        verify(element).click();
+        verify(iosDriver, never()).perform(any());
+    }
+
+    @Test
+    void hideKeyboardOnIosTapsNearTopWhenTheReturnKeyLeavesTheKeyboardUp() {
+        System.setProperty("platform", "IOS");
+        when(iosDriver.isKeyboardShown()).thenReturn(true);
+        doThrow(new WebDriverException("Did not know how to dismiss the keyboard")).when(iosDriver).hideKeyboard();
+        when(iosDriver.findElements(any(By.class))).thenReturn(List.of(element));
+        stubScreenSize(iosDriver, 1000, 2000);
+
+        AppInteractionUtils.hideKeyboard(iosDriver);
+
+        verify(element).click();
+        assertThat(firstMove(iosDriver)).containsEntry("x", 500).containsEntry("y", 200);
+    }
+
+    @Test
     void hideKeyboardOnIosSwallowsFallbackFailure() {
         System.setProperty("platform", "IOS");
         when(iosDriver.isKeyboardShown()).thenReturn(true);
@@ -383,8 +411,7 @@ class AppInteractionUtilsTest {
     @Test
     void tapIosKeyboardDoneButtonTapsTheToolbarDone() {
         System.setProperty("platform", "IOS");
-        when(driver.findElement(AppiumBy.iOSNsPredicateString(
-                "name == 'Done' AND type IN {'XCUIElementTypeButton', 'XCUIElementTypeStaticText'}"))).thenReturn(element);
+        when(driver.findElement(SystemLocators.iosKeyboardDoneButton())).thenReturn(element);
 
         AppInteractionUtils.tapIosKeyboardDoneButton(driver);
 

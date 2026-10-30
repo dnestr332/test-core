@@ -2,7 +2,8 @@ package com.dnestr.mobile.utils;
 
 import com.dnestr.base.utils.WaitUtils;
 import com.dnestr.mobile.context.TestContext;
-import io.appium.java_client.AppiumBy;
+import com.dnestr.mobile.locators.SystemLocators;
+import com.dnestr.mobile.locators.TestIdLocators;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.HasOnScreenKeyboard;
 import io.appium.java_client.android.AndroidDriver;
@@ -235,15 +236,10 @@ public class AppInteractionUtils {
         log.info("{} {} Scrolling to '{}'", INFO_SHORT, INFO, id);
 
         if (TestContext.isIos()) {
-            String predicate = "name == '%s'".formatted(id.replace("\\", "\\\\").replace("'", "\\'"));
-            driver.executeScript("mobile: scroll", Map.of("predicateString", predicate));
-            return driver.findElement(AppiumBy.iOSNsPredicateString(predicate));
+            driver.executeScript("mobile: scroll", Map.of("predicateString", TestIdLocators.iosTestIdPredicate(id)));
+            return driver.findElement(TestIdLocators.iosByTestIdPredicate(id));
         }
-        String resourceId = id.replace("\\", "\\\\").replace("\"", "\\\"");
-        return driver.findElement(AppiumBy.androidUIAutomator(
-                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().resourceId(\"%s\"))"
-                        .formatted(resourceId))
-        );
+        return driver.findElement(TestIdLocators.androidScrollIntoViewByTestId(id));
     }
 
     /**
@@ -266,8 +262,8 @@ public class AppInteractionUtils {
 
     //region KEYBOARD
     /**
-     * Hides the on-screen keyboard; does nothing when none is up. On iOS a failed hide falls back to a tap near the
-     * top of the screen. On Android it is only logged: pressing Back instead leaves the screen whenever the keyboard
+     * Hides the on-screen keyboard; does nothing when none is up. On iOS a failed hide presses the keyboard's own Return
+     * or Done key, then falls back to a tap near the top of the screen. On Android it is only logged: pressing Back instead leaves the screen whenever the keyboard
      * was not really up, and an emulator with a hardware keyboard reports one shown while drawing none.
      */
     public static void hideKeyboard(AppiumDriver driver) {
@@ -283,8 +279,21 @@ public class AppInteractionUtils {
                 log.warn("⚠ Failed to hide keyboard, leaving it: {}", e.getMessage());
                 return;
             }
-            log.warn("⚠ Failed to hide keyboard, tapping near the top instead: {}", e.getMessage());
-            tapNearTopQuietly(driver);
+            log.warn("⚠ Failed to hide keyboard, pressing its return key instead: {}", e.getMessage());
+            if (!pressIosKeyboardDismissKey(driver)) tapNearTopQuietly(driver);
+        }
+    }
+
+    /** WebDriverAgent cannot dismiss a keyboard whose only way out is its return key, such as React Native's default one. */
+    private static boolean pressIosKeyboardDismissKey(AppiumDriver driver) {
+        try {
+            List<WebElement> keys = driver.findElements(SystemLocators.iosKeyboardDismissKey());
+            if (keys.isEmpty()) return false;
+            keys.getFirst().click();
+            return !((HasOnScreenKeyboard) driver).isKeyboardShown();
+        } catch (Exception e) {
+            log.warn("⚠ Failed to press the keyboard's return key, tapping near the top instead: {}", e.getMessage());
+            return false;
         }
     }
 
@@ -300,9 +309,7 @@ public class AppInteractionUtils {
     /** Taps "Done" on the iOS keyboard's toolbar, which a number pad needs to close. */
     public static void tapIosKeyboardDoneButton(AppiumDriver driver) {
         PlatformGuards.requireIos("the keyboard's Done button");
-        driver.findElement(AppiumBy.iOSNsPredicateString(
-                "name == 'Done' AND type IN {'XCUIElementTypeButton', 'XCUIElementTypeStaticText'}"))
-                .click();
+        driver.findElement(SystemLocators.iosKeyboardDoneButton()).click();
     }
 
     /** Types {@code text} into whichever element has focus, for an input the UI tree leaves out (e.g. a 1x1 code field). */

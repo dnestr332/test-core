@@ -31,6 +31,7 @@ public final class SystemLocators {
         );
     }
 
+    /** The runtime-permission dialog's deny button ("Don't allow"). */
     public static By androidPermissionDenyButton() {
         return byAndroidResourceIdContaining(":id/permission_deny_button");
     }
@@ -66,5 +67,19 @@ public final class SystemLocators {
     /** The camera app's confirm button, shown once a photo is taken. */
     public static By androidCameraDoneButton() {
         return byAndroidResourceIdContaining(":id/done_button");
+    }
+
+    /** The keyboard's Return or Done key, which ends editing on a single-line field; Next and Go are left out, as they move focus or submit. */
+    public static By iosKeyboardDismissKey() {
+        return AppiumBy.iOSClassChain(
+                "**/XCUIElementTypeKeyboard/**/XCUIElementTypeButton[`name IN {'Return', 'return', 'Done', 'done'}`]"
+        );
+    }
+
+    /** Done on the keyboard's toolbar, which a number pad needs to close. */
+    public static By iosKeyboardDoneButton() {
+        return AppiumBy.iOSNsPredicateString(
+                "name == 'Done' AND type IN {'XCUIElementTypeButton', 'XCUIElementTypeStaticText'}"
+        );
     }
 }

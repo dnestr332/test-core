@@ -1,5 +1,6 @@
 package com.dnestr.mobile.locators;
 
+import io.appium.java_client.AppiumBy;
 import org.openqa.selenium.By;
 
 import java.util.Arrays;
@@ -15,6 +16,7 @@ public final class TestIdLocators {
 
     private TestIdLocators() {}
 
+    /** The element with this test id, on either platform. */
     public static By byTestId(String testId) {
         return By.xpath("//*[%s]".formatted(matches(testId)));
     }
@@ -33,6 +35,25 @@ public final class TestIdLocators {
     /** Every element whose test id starts with {@code prefix}, e.g. to count a list's rows. */
     public static By allByTestIdPrefix(String prefix) {
         return By.xpath("//*[%s]".formatted(startsWith(prefix)));
+    }
+
+    /** The predicate for an element's test id on iOS, as a string: {@code mobile: scroll} takes it in that form. */
+    public static String iosTestIdPredicate(String testId) {
+        return "name == '%s'".formatted(testId.replace("\\", "\\\\").replace("'", "\\'"));
+    }
+
+    /** The element with this test id on iOS, by predicate rather than XPath: no page-source snapshot is taken. */
+    public static By iosByTestIdPredicate(String testId) {
+        return AppiumBy.iOSNsPredicateString(iosTestIdPredicate(testId));
+    }
+
+    /** Android's first scrollable container, scrolled until the element with this test id is in view. */
+    public static By androidScrollIntoViewByTestId(String testId) {
+        String resourceId = testId.replace("\\", "\\\\").replace("\"", "\\\"");
+        return AppiumBy.androidUIAutomator(
+                "new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(new UiSelector().resourceId(\"%s\"))"
+                        .formatted(resourceId)
+        );
     }
 
     private static String matches(String testId) {

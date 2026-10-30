@@ -21,6 +21,7 @@ public final class SimctlUtils {
 
     private SimctlUtils() {}
 
+    /** A simulator as {@code simctl} lists it, with the iOS version of its runtime. */
     public record IosSimulator(String udid, String name, String platformVersion) {}
 
     /** The booted iOS simulators, with the iOS version of the runtime each runs. */

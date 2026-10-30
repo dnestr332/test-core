@@ -58,6 +58,7 @@ public abstract class BaseAssertionFlow {
         verifyVisible(drawn.resolve(item), describe(drawn, item), assertion, visible);
     }
 
+    /** Asserts the element is visible or hidden; {@code name} labels it in the failure message. */
     public void verifyVisible(By locator, String name, AssertionState assertion, VisibleState visible) {
         BooleanSupplier condition = switch (visible) {
             case VISIBLE -> () -> elementActions.isVisible(locator);
@@ -66,6 +67,7 @@ public abstract class BaseAssertionFlow {
         assertBy(assertion, condition, "❌ %s should be %s".formatted(name, visible.name().toLowerCase()));
     }
 
+    /** Asserts the item's text equals {@code expected}, failing at once or at the end of the scenario per {@code assertion}. */
     public void verifyTextEquals(AppScreen screen, Clickable item, AssertionState assertion, String expected) {
         BaseScreen drawn = resolve(screen);
         By locator = drawn.resolve(item);
@@ -76,6 +78,7 @@ public abstract class BaseAssertionFlow {
         }
     }
 
+    /** Softly asserts the item's text contains {@code expected}. */
     public void verifyTextContains(AppScreen screen, Clickable item, String expected) {
         BaseScreen drawn = resolve(screen);
         verifyTextContains(drawn.resolve(item), describe(drawn, item), expected);
@@ -101,6 +104,7 @@ public abstract class BaseAssertionFlow {
         return actual.contains(expected);
     }
 
+    /** Softly asserts the item is enabled or disabled. */
     public void verifyItemState(AppScreen screen, Clickable item, ButtonState buttonState) {
         BaseScreen drawn = resolve(screen);
         By locator = drawn.resolve(item);
