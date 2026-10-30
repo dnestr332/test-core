@@ -1,9 +1,9 @@
 package com.dnestr.web.flows;
 
+import com.dnestr.base.assertions.Hardly;
 import com.dnestr.base.assertions.Softly;
 import com.dnestr.base.states.*;
 import com.dnestr.web.actions.ElementActions;
-import com.dnestr.web.assertions.Hardly;
 import com.dnestr.web.pages.AppPage;
 import com.dnestr.web.pages.PageElement;
 import com.dnestr.web.pages.BasePage;
@@ -18,15 +18,15 @@ import java.util.function.Supplier;
  * Base for flow classes that assert on page state via a page enum + {@link PageElement}, rather
  * than requiring callers to resolve a {@link BasePage} and locator themselves. Every {@code verify*}
  * method takes an {@link AssertionState}: {@code STRICTLY} routes to {@link Hardly} (fails the test
- * immediately), {@code SOFTLY} routes to {@code com.dnestr.base.assertions.Softly} (accumulates the
+ * immediately), {@code SOFTLY} routes to {@link Softly} (accumulates the
  * failure for a later {@code Softly.assertAll()}) — same check, different failure semantics, chosen
  * by the caller per assertion.
  * <p>
  * <b>None of the checks below wait or retry.</b> Each condition — {@code locator.isVisible()},
  * {@code elementActions.text(locator)}, etc. — is read exactly once, synchronously, before being
- * handed to {@link Hardly}/{@code Softly}, neither of which polls (see {@link Hardly}'s class docs).
- * That's different from Playwright's own web-first assertions (e.g. {@link Hardly#isVisible}),
- * which retry until a timeout. Calling a {@code verify*} method immediately after an action that
+ * handed to {@link Hardly}/{@link Softly}, neither of which polls. That's different from
+ * Playwright's own web-first assertions ({@code PlaywrightAssertions.assertThat(locator).isVisible()}
+ * etc.), which retry until a timeout. Calling a {@code verify*} method immediately after an action that
  * triggers async UI change (navigation, a fetch-driven re-render) can therefore catch the UI
  * mid-transition and fail — or, for a {@code HIDDEN}/{@code UNCHECKED}-style check, pass
  * incorrectly on stale state. Wait for the UI to settle first (e.g.

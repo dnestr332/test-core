@@ -6,10 +6,9 @@ import org.assertj.core.api.Assertions;
  * Framework-agnostic hard (fail-fast) assertion entrypoint: a thin AssertJ wrapper that attaches a
  * {@code context} description to the failure message and throws on the first failing assertion.
  * Every check here evaluates its input exactly once, synchronously — there is no polling/retry, so
- * this is only appropriate once the value being asserted on is already known to be settled. The
- * web and mobile modules each have their own {@code Hardly} that delegates {@code isTrue}/
- * {@code isFalse}/{@code isEqual} here and adds platform-specific, auto-retrying element assertions
- * alongside them — see e.g. {@code com.dnestr.web.assertions.Hardly}.
+ * this is only appropriate once the value being asserted on is already known to be settled. For
+ * auto-retrying element checks in web tests, use Playwright's own
+ * {@code PlaywrightAssertions.assertThat(locator)} directly.
  */
 public final class Hardly {
 

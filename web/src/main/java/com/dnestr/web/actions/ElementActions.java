@@ -31,6 +31,9 @@ import static com.dnestr.base.actions.ElementAction.*;
 @RequiredArgsConstructor
 public class ElementActions {
 
+    private static final String IS_FORM_CONTROL_JS =
+            "el => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement";
+
     private final Page page;
     private final FailureCatcher failureCatcher;
 
@@ -76,21 +79,20 @@ public class ElementActions {
 
     /**
      * Returns the locator's trimmed visible text, falling back to its input value for form
-     * controls whose text doesn't come through {@code innerText} (e.g. {@code <input>}), and to
-     * an empty string if both are blank.
+     * controls whose text doesn't come through {@code innerText} ({@code <input>},
+     * {@code <textarea>}, {@code <select>}), and to an empty string otherwise. The fallback is
+     * only attempted on form controls, since Playwright's {@code inputValue} throws for any other
+     * element.
      */
     public String text(Locator locator) {
         return failureCatcher.withFailureCapture(GET_TEXT, locator,
                 () -> {
                     String text = locator.innerText();
-                    if (text != null && !text.isBlank()) {
+                    if (!text.isBlank()) {
                         return text.trim();
                     }
-                    String value = locator.inputValue();
-                    if (value != null && !value.isBlank()) {
-                        return value.trim();
-                    }
-                    return "";
+                    boolean isFormControl = Boolean.TRUE.equals(locator.evaluate(IS_FORM_CONTROL_JS));
+                    return isFormControl ? locator.inputValue().trim() : "";
                 }
         );
     }

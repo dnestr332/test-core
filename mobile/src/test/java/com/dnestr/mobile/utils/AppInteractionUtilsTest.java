@@ -1,5 +1,6 @@
 package com.dnestr.mobile.utils;
 
+import org.openqa.selenium.InvalidElementStateException;
 import com.dnestr.mobile.actions.AppAction;
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.mobile.locators.SystemLocators;
@@ -292,34 +293,64 @@ class AppInteractionUtilsTest {
     }
 
     @Test
-    void scrollIntoViewOnIosScrollsByPredicateOnlyThenReturnsTheElement() {
+    void scrollIntoViewOnIosReturnsAnElementAlreadyOnScreenWithoutScrolling() {
         System.setProperty("platform", "IOS");
-        when(driver.findElement(AppiumBy.iOSNsPredicateString("name == 'doc-row-ssn'"))).thenReturn(element);
+        By target = AppiumBy.iOSNsPredicateString("name == 'doc-row-ssn'");
+        when(driver.findElements(target)).thenReturn(List.of(element));
+        when(element.isDisplayed()).thenReturn(true);
+        when(driver.findElement(target)).thenReturn(element);
+        stubScreenSize(driver, 1000, 2000);
 
         assertThat(AppInteractionUtils.scrollIntoView("doc-row-ssn", driver)).isSameAs(element);
 
-        InOrder order = inOrder(driver);
-        order.verify(driver).executeScript("mobile: scroll", Map.of("predicateString", "name == 'doc-row-ssn'"));
-        order.verify(driver).findElement(AppiumBy.iOSNsPredicateString("name == 'doc-row-ssn'"));
+        verify(driver, never()).perform(any());
+        verify(driver, never()).executeScript(anyString(), anyMap());
     }
 
+    /** WebDriverAgent's scroll spends about a minute on a React Native ScrollView before failing, so drags go first. */
     @Test
-    void scrollIntoViewOnIosEscapesQuotesInThePredicate() {
+    void scrollIntoViewOnIosDragsUntilTheElementShowsWithoutScrollingByPredicate() {
         System.setProperty("platform", "IOS");
-        when(driver.findElement(any(By.class))).thenReturn(element);
+        By target = AppiumBy.iOSNsPredicateString("name == 'personal-info-email'");
+        when(driver.findElements(target)).thenReturn(List.of(element));
+        // Clipped below the form's visible area first, shown after one drag.
+        when(element.isDisplayed()).thenReturn(false, true);
+        when(driver.findElement(target)).thenReturn(element);
+        stubScreenSize(driver, 1000, 2000);
 
-        AppInteractionUtils.scrollIntoView("it's", driver);
+        assertThat(AppInteractionUtils.scrollIntoView("personal-info-email", driver)).isSameAs(element);
 
-        verify(driver).executeScript("mobile: scroll", Map.of("predicateString", "name == 'it\\'s'"));
+        assertThat(firstMove(driver)).containsEntry("x", 500).containsEntry("y", 900);
+        verify(driver, times(1)).perform(any());
+        verify(driver, never()).executeScript(anyString(), anyMap());
+    }
+
+    /** An element above the current position: dragging up never reaches it, the predicate scroll does. */
+    @Test
+    void scrollIntoViewOnIosScrollsByPredicateWhenTheDragsDoNotReachIt() {
+        System.setProperty("platform", "IOS");
+        By target = AppiumBy.iOSNsPredicateString("name == 'it\\'s'");
+        when(driver.findElement(target)).thenReturn(element);
+        stubScreenSize(driver, 1000, 2000);
+
+        assertThat(AppInteractionUtils.scrollIntoView("it's", driver)).isSameAs(element);
+
+        InOrder order = inOrder(driver);
+        order.verify(driver, times(4)).perform(any());
+        order.verify(driver).executeScript("mobile: scroll", Map.of("predicateString", "name == 'it\\'s'"));
+        order.verify(driver).findElement(target);
     }
 
     @Test
-    void scrollIntoViewOnIosThrowsWhenTheScrollFindsNoElement() {
+    void scrollIntoViewOnIosThrowsWhenNeitherTheDragsNorTheScrollReachTheElement() {
         System.setProperty("platform", "IOS");
         when(driver.executeScript(eq("mobile: scroll"), anyMap())).thenThrow(new WebDriverException("no match"));
+        stubScreenSize(driver, 1000, 2000);
 
         assertThatThrownBy(() -> AppInteractionUtils.scrollIntoView("missing", driver))
-                .isInstanceOf(WebDriverException.class);
+                .isInstanceOf(WebDriverException.class)
+                .hasMessageContaining("no match");
+        verify(driver, times(4)).perform(any());
         verify(driver, never()).findElement(any(By.class));
     }
     //endregion

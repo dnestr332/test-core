@@ -9,6 +9,7 @@ import io.appium.java_client.HasOnScreenKeyboard;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.Point;
@@ -44,6 +45,9 @@ import static com.dnestr.base.logs.LogStyles.*;
  */
 @Slf4j
 public class AppInteractionUtils {
+
+    private static final int MAX_REVEAL_DRAGS = 4;
+    private static final Duration DRAG_DURATION = Duration.ofMillis(500);
 
     private AppInteractionUtils() {}
 
@@ -230,16 +234,44 @@ public class AppInteractionUtils {
      * {@code id} is the Android resource-id (package-qualified in a native app) and the iOS name, where a React
      * Native testID lands on each. Android searches the first scrollable container from its top, so an element above
      * the current position is found too; iOS scrolls straight to it. Pass no direction on iOS: WebDriverAgent would
-     * make a single swipe that way and ignore the predicate.
+     * make a single swipe that way and ignore the predicate. iOS drags first: WebDriverAgent's scroll handles table
+     * and collection views only, and on a React Native {@code ScrollView} it scrolls back and forth for about a minute
+     * before giving up, so it is the fallback for an element above the current position.
      */
     public static WebElement scrollIntoView(String id, AppiumDriver driver) {
         log.info("{} {} Scrolling to '{}'", INFO_SHORT, INFO, id);
 
         if (TestContext.isIos()) {
-            driver.executeScript("mobile: scroll", Map.of("predicateString", TestIdLocators.iosTestIdPredicate(id)));
-            return driver.findElement(TestIdLocators.iosByTestIdPredicate(id));
+            By target = TestIdLocators.iosByTestIdPredicate(id);
+            if (!dragUpUntil(() -> isDisplayed(target, driver), MAX_REVEAL_DRAGS, driver)) {
+                log.debug("Dragging did not reach '{}', scrolling by predicate", id);
+                driver.executeScript("mobile: scroll", Map.of("predicateString", TestIdLocators.iosTestIdPredicate(id)));
+            }
+            return driver.findElement(target);
         }
         return driver.findElement(TestIdLocators.androidScrollIntoViewByTestId(id));
+    }
+
+    /**
+     * Drags up from 45% to 15% of the screen height, as a finger scrolls, until {@code done} holds, at most
+     * {@code maxDrags} times; returns whether it held. WebDriverAgent's swipe is a flick a React Native scroll view
+     * can ignore, which a drag is not. It starts above a bottom footer and keyboard, where a drag scrolls nothing.
+     */
+    public static boolean dragUpUntil(BooleanSupplier done, int maxDrags, AppiumDriver driver) {
+        Dimension size = driver.manage().window().getSize();
+        Point from = new Point(size.getWidth() / 2, (int) (size.getHeight() * 0.45));
+        Point to = new Point(from.getX(), (int) (size.getHeight() * 0.15));
+        for (int drag = 0; drag < maxDrags; drag++) {
+            if (done.getAsBoolean()) return true;
+            dragAndDrop(from, to, Duration.ZERO, DRAG_DURATION, driver);
+        }
+        return done.getAsBoolean();
+    }
+
+    /** {@code isDisplayed} also counts the clipping of a scroll view, which an element's position alone does not show. */
+    private static boolean isDisplayed(By locator, AppiumDriver driver) {
+        List<WebElement> found = driver.findElements(locator);
+        return !found.isEmpty() && found.getFirst().isDisplayed();
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.dnestr.web.enums;
+package com.dnestr.web.config;
 
 /** The browser a web run drives. */
 public enum TestBrowser {

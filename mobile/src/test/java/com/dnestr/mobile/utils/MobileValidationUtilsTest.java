@@ -145,4 +145,17 @@ class MobileValidationUtilsTest {
 
         assertThat(MobileValidationUtils.isChecked(box)).isFalse();
     }
+
+    /** React Native puts a checkbox's role and its state together into the iOS value. */
+    @Test
+    void isCheckedReadsReactNativesRoleAndStateOnIos() {
+        System.setProperty("platform", "IOS");
+        WebElement on = mock(WebElement.class);
+        WebElement off = mock(WebElement.class);
+        when(on.getAttribute("value")).thenReturn("checkbox, checked");
+        when(off.getAttribute("value")).thenReturn("checkbox, not checked");
+
+        assertThat(MobileValidationUtils.isChecked(on)).isTrue();
+        assertThat(MobileValidationUtils.isChecked(off)).isFalse();
+    }
 }

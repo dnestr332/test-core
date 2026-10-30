@@ -32,6 +32,7 @@ public final class TestRailSyncProvider implements SyncProvider {
     private final int projectId;
     private final int templateId;
     private final TestRailCaseSyncClient.CaseField gherkinField;
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private final Optional<TestRailCaseSyncClient.CaseField> automationField;
 
     private final Map<Path, Integer> subsectionIdByFile = new HashMap<>();

@@ -75,6 +75,11 @@ public class DriverWait {
                 .until(ExpectedConditions.visibilityOfElementLocated(locator));
     }
 
+    /** Waits up to the short timeout for the element to be gone or no longer displayed — a card or dialog animating away. */
+    public void invisibleShort(By locator) {
+        getWait(shortTimeout).until(ExpectedConditions.invisibilityOfElementLocated(locator));
+    }
+
     /**
      * Waits (up to the configured long timeout) until nothing matches {@code locator}. Unlike {@link #notVisible},
      * an element that is present but hidden still counts, and the timeout is the long one — for a spinner or overlay

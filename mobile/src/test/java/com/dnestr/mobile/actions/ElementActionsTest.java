@@ -1,5 +1,7 @@
 package com.dnestr.mobile.actions;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.openqa.selenium.ElementNotInteractableException;
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.mobile.logs.FailureCatcher;
 import com.dnestr.mobile.logs.MobilePrettyPrinter;
@@ -42,6 +44,7 @@ class ElementActionsTest {
 
     @BeforeEach
     void setUp() {
+        System.setProperty("platform", "ANDROID");
         FailureCatcher failureCatcher = new FailureCatcher(new MobilePrettyPrinter());
         elementActions = new ElementActions(driverWait, fallbackActions, failureCatcher);
     }
@@ -329,4 +332,54 @@ class ElementActionsTest {
         verify(element, never()).click();
     }
     //endregion
+
+    @Test
+    void clickFallbackTapsNothingWhenTheElementIsNotOnScreen() {
+        when(driverWait.clickable(locator)).thenThrow(new TimeoutException("not visible"));
+        doThrow(new ElementNotInteractableException("not on screen")).when(fallbackActions).requireTappable(locator);
+
+        assertThatThrownBy(() -> elementActions.click(locator)).hasStackTraceContaining("not on screen");
+
+        verify(fallbackActions, never()).clickNativeByPlatform(any());
+        verify(fallbackActions, never()).tapByElementCenter(any());
+    }
+
+    @Test
+    void isHiddenIsTrueOnceTheElementGoes() {
+        assertThat(elementActions.isHidden(locator)).isTrue();
+
+        verify(driverWait).invisibleShort(locator);
+    }
+
+    @Test
+    void isHiddenIsFalseWhileTheElementStaysDisplayed() {
+        doThrow(new TimeoutException("still shown")).when(driverWait).invisibleShort(locator);
+
+        assertThat(elementActions.isHidden(locator)).isFalse();
+    }
+
+    /** A sheet slides up when it opens, and UIKit drops a tap made while it moves. */
+    @Test
+    void clickOnIosWaitsForTheElementToStopMovingThenTapsIt() {
+        System.setProperty("platform", "IOS");
+        TestContext.clearPlatform();
+        WebElement settled = mock(WebElement.class);
+        when(driverWait.clickable(locator)).thenReturn(element);
+        when(driverWait.untilStable(locator)).thenReturn(settled);
+
+        elementActions.click(locator);
+
+        verify(settled).click();
+        verify(element, never()).click();
+    }
+
+    @Test
+    void clickOnAndroidTapsWithoutWaitingForStillness() {
+        when(driverWait.clickable(locator)).thenReturn(element);
+
+        elementActions.click(locator);
+
+        verify(element).click();
+        verify(driverWait, never()).untilStable(any());
+    }
 }

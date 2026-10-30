@@ -121,13 +121,14 @@ class BaseFlowsTest {
     }
 
     @Test
-    void verifyVisibleHiddenUsesTheShortCheck() {
-        when(elementActions.isQuickVisible(LOCATOR)).thenReturn(false);
+    void verifyVisibleHiddenWaitsForTheElementToGo() {
+        when(elementActions.isHidden(LOCATOR)).thenReturn(true);
 
         assertions.verifyVisible(State.SETTINGS, Item.SAVE_BUTTON, AssertionState.SOFTLY, VisibleState.HIDDEN);
 
         assertThatNoException().isThrownBy(Softly::assertAll);
         verify(elementActions, never()).isVisible(LOCATOR);
+        verify(elementActions, never()).isQuickVisible(LOCATOR);
     }
 
     @Test

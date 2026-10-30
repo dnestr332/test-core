@@ -47,7 +47,7 @@ public final class LogStyles {
 
     public static final String LENNY        = "😏";
     public static final String SHRUG        = "🤷";
-    public static final String TABLE_FLIP = "🤬";
+    public static final String TABLE_FLIP   = "🤬";
     public static final String UNFLIP       = "😌";
     public static final String BEAR         = "🐻";
     public static final String GHOST        = "👻";

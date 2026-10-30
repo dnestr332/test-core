@@ -27,7 +27,6 @@ public final class PropReaderUtils {
             Properties props = new Properties();
             props.load(is);
             return props;
-
         } catch (Exception e) {
             throw new RuntimeException("Failed to load: " + filePath, e);
         }

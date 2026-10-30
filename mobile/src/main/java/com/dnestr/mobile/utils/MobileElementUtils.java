@@ -1,11 +1,13 @@
 package com.dnestr.mobile.utils;
 
 import com.dnestr.mobile.context.TestContext;
+import io.appium.java_client.remote.AppiumWebElement;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.remote.RemoteWebElement;
 
 import java.util.Comparator;
 import java.util.List;
@@ -79,6 +81,15 @@ public final class MobileElementUtils {
     public static String getId(WebElement element) {
         String id = element.getAttribute(TestContext.isIos() ? "name" : "resource-id");
         return id == null ? "" : id;
+    }
+
+    /** The element's WebDriver reference, which {@code mobile:} commands take as {@code elementId}. */
+    public static String referenceId(WebElement element) {
+        return switch (element) {
+            case AppiumWebElement appium -> appium.getId();
+            case RemoteWebElement remote -> remote.getId();
+            default -> throw new IllegalArgumentException(element.getClass().getName() + " is not a driver element");
+        };
     }
 
     /** The center of the element's bounding box. */

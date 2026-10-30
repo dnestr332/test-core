@@ -8,7 +8,7 @@ import com.dnestr.base.states.VisibleState;
 import com.dnestr.base.utils.CommonUtils;
 import com.dnestr.base.utils.WaitUtils;
 import com.dnestr.mobile.actions.ElementActions;
-import com.dnestr.mobile.assertions.Hardly;
+import com.dnestr.base.assertions.Hardly;
 import com.dnestr.mobile.screens.AppScreen;
 import com.dnestr.mobile.screens.BaseScreen;
 import com.dnestr.mobile.screens.BaseScreenResolver;
@@ -62,7 +62,7 @@ public abstract class BaseAssertionFlow {
     public void verifyVisible(By locator, String name, AssertionState assertion, VisibleState visible) {
         BooleanSupplier condition = switch (visible) {
             case VISIBLE -> () -> elementActions.isVisible(locator);
-            case HIDDEN -> () -> !elementActions.isQuickVisible(locator);
+            case HIDDEN -> () -> elementActions.isHidden(locator);
         };
         assertBy(assertion, condition, "❌ %s should be %s".formatted(name, visible.name().toLowerCase()));
     }

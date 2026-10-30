@@ -87,7 +87,7 @@ class BaseAssertionFlowTest {
         // Known inconsistency (flagged in review, left as-is -- may be a deliberate
         // design choice): this branch reads locator.count() > 0 && first().isVisible()
         // once, rather than delegating to Playwright's auto-retrying assertThat(locator)
-        // .isVisible() the way Hardly.isVisible() does. This test locks down the current
+        // .isVisible() would. This test locks down the current
         // one-shot semantics rather than the auto-retrying alternative.
         when(locator.count()).thenReturn(0);
 

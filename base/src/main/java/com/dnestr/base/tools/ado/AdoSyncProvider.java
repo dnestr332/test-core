@@ -57,12 +57,9 @@ public final class AdoSyncProvider implements SyncProvider {
                     candidate.scenarioTitle(),
                     candidate.gherkinBody()
             );
-
             client.addTestCaseToSuite(suiteId, testCaseId);
-
             result = SyncResult.add("@tc:" + testCaseId);
         }
-
         for (long pbiId : metadata.pbiIds()) {
             client.linkTestCaseToPbi(testCaseId, pbiId);
         }

@@ -54,6 +54,21 @@ public final class SystemLocators {
         );
     }
 
+    /** The alert on screen. */
+    public static By iosAlert() {
+        return By.xpath("//XCUIElementTypeAlert");
+    }
+
+    /** The title of the alert on screen: its first text. */
+    public static By iosAlertTitle() {
+        return By.xpath("(//XCUIElementTypeAlert//XCUIElementTypeStaticText)[1]");
+    }
+
+    /** The message of the alert on screen: the text under its title. */
+    public static By iosAlertMessage() {
+        return By.xpath("(//XCUIElementTypeAlert//XCUIElementTypeStaticText)[2]");
+    }
+
     /** A button of the alert on screen, by its label. */
     public static By iosAlertButton(String label) {
         return By.xpath("//XCUIElementTypeAlert//XCUIElementTypeButton[@name=%s]".formatted(literal(label)));

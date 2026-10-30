@@ -1,5 +1,6 @@
 package com.dnestr.mobile.actions;
 
+import com.dnestr.mobile.context.TestContext;
 import com.dnestr.base.actions.ElementAction;
 import com.dnestr.mobile.logs.FailureCatcher;
 import com.dnestr.mobile.utils.AppInteractionUtils;
@@ -122,7 +123,7 @@ public class ElementActions {
                         }
                         case FAST_TRY -> {
                             try {
-                                driverWait.clickableShort(locator).click();
+                                settled(driverWait.clickableShort(locator), locator).click();
                             } catch (Exception e) {
                                 logFallback(CLICK_BY_NATIVE, NO_WAIT, locator);
                                 clickNative(locator);
@@ -130,7 +131,7 @@ public class ElementActions {
                         }
                         case DEFAULT -> {
                             try {
-                                driverWait.clickable(locator).click();
+                                settled(driverWait.clickable(locator), locator).click();
                             } catch (Exception e) {
                                 logFallback(CLICK, NO_WAIT, locator);
                                 clickNative(locator);
@@ -139,6 +140,14 @@ public class ElementActions {
                     }
                 }
         );
+    }
+
+    /**
+     * On iOS UIKit drops a tap on a view that is still sliding in, such as a sheet being presented, so the element
+     * is tapped once two reads of its position agree. Android delivers such a tap.
+     */
+    private WebElement settled(WebElement element, By locator) {
+        return TestContext.isIos() ? driverWait.untilStable(locator) : element;
     }
 
     /** {@link #click(By, ActionStrategy)} with {@link ActionStrategy#DEFAULT}. */
@@ -155,10 +164,12 @@ public class ElementActions {
      * Clicks via {@link FallbackActions#clickNativeByPlatform} (a platform-native mobile command),
      * falling back further to {@link FallbackActions#tapByElementCenter} (a raw coordinate tap) if
      * even that fails — the most robust, least precise click path, used when Selenium's own click
-     * doesn't register on a native element.
+     * doesn't register on a native element. It refuses a disabled element, which a tap would not press, and on
+     * iOS one that is not on screen, which both fallbacks would otherwise miss by tapping its coordinates.
      */
     public void clickNative(By locator) {
         failureCatcher.withFailureCapture(CLICK_BY_NATIVE, locator, () -> {
+            fallbackActions.requireTappable(locator);
             try {
                 fallbackActions.clickNativeByPlatform(locator);
             } catch (Exception e) {
@@ -302,6 +313,19 @@ public class ElementActions {
             driverWait.visible(locator, timeout);
             return true;
         } catch (TimeoutException ignored) {
+            return false;
+        }
+    }
+
+    /**
+     * Whether the element is gone or no longer displayed within the short timeout, so one still animating away is
+     * not read as staying. Never throws.
+     */
+    public boolean isHidden(By locator) {
+        try {
+            driverWait.invisibleShort(locator);
+            return true;
+        } catch (Exception stillShown) {
             return false;
         }
     }

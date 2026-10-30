@@ -8,9 +8,9 @@ import io.appium.java_client.AppiumDriver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementNotInteractableException;
 import org.openqa.selenium.Point;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.remote.RemoteWebElement;
 
 import java.util.List;
 import java.util.Map;
@@ -52,14 +52,12 @@ public class FallbackActions {
 
     /** Blocks for a fixed 3 seconds to let a UI transition finish before {@link #relocate}/{@link #relocateList} are attempted. */
     public void pause() {
-        log.warn("UI settling");
-        WaitUtils.sleepSeconds(3);
+        WaitUtils.sleepSeconds(3, "UI settling");
     }
 
     /** Blocks for a fixed 1 second — a lighter settle pause than {@link #pause}, e.g. between text-read retries. */
     public void shortPause() {
-        log.warn("Short UI settling");
-        WaitUtils.sleepSeconds(1);
+        WaitUtils.sleepSeconds(1, "Short UI settling");
     }
 
     /** Taps the geometric center of the element's bounding rect via raw coordinates, bypassing Selenium's click entirely — the last-resort fallback when even a native platform click fails. */
@@ -70,14 +68,30 @@ public class FallbackActions {
         AppInteractionUtils.tapByCoordinates(center.getX(), center.getY(), driver);
     }
 
+    /**
+     * Throws when a native click could not press the element: it is disabled, so the tap would do nothing, or on iOS
+     * it is not on screen — scrolled away or under the keyboard — where both native clicks are coordinate taps that
+     * would press whatever is drawn on top.
+     */
+    public void requireTappable(By locator) {
+        WebElement element = driver.findElement(locator);
+        if (TestContext.isIos() && !element.isDisplayed()) {
+            throw new ElementNotInteractableException(
+                    "%s is not on screen (scrolled away or under the keyboard); scroll to it or hide the keyboard first"
+                            .formatted(locator));
+        }
+        if (!element.isEnabled()) {
+            throw new ElementNotInteractableException("%s is disabled, so a tap would do nothing".formatted(locator));
+        }
+    }
+
     /** Clicks the element via a platform-native mobile command instead of Selenium's own click: Appium's {@code mobile: clickGesture} on Android, a coordinate {@code mobile: tap} on iOS. */
     public void clickNativeByPlatform(By locator) {
         WebElement el = driver.findElement(locator);
 
         if (TestContext.isAndroid()) {
-            assert ((RemoteWebElement) el).getId() != null;
             driver.executeScript("mobile: clickGesture", Map.of(
-                    "elementId", ((RemoteWebElement) el).getId()
+                    "elementId", MobileElementUtils.referenceId(el)
             ));
         } else {
             Point center = MobileElementUtils.centerOf(el);

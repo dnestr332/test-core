@@ -151,4 +151,23 @@ class DriverWaitTest {
         assertThat(driverWait.untilStable(locator)).isSameAs(element);
         verify(element, times(3)).getLocation();
     }
+
+    /** A request card animates away: still displayed on the first poll, gone on a later one. */
+    @Test
+    void invisibleShortReturnsOnceTheElementStopsBeingDisplayed() {
+        DriverWait waitWithShortTimeout = new DriverWait(driver, new WaitConfig(1, 1, 10));
+        when(driver.findElement(locator)).thenReturn(element);
+        when(element.isDisplayed()).thenReturn(true, false);
+
+        assertThatCode(() -> waitWithShortTimeout.invisibleShort(locator)).doesNotThrowAnyException();
+        verify(element, times(2)).isDisplayed();
+    }
+
+    @Test
+    void invisibleShortTimesOutWhileTheElementStaysDisplayed() {
+        when(driver.findElement(locator)).thenReturn(element);
+        when(element.isDisplayed()).thenReturn(true);
+
+        assertThatThrownBy(() -> driverWait.invisibleShort(locator)).isInstanceOf(TimeoutException.class);
+    }
 }

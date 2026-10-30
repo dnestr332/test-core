@@ -10,13 +10,13 @@ Multi-module test automation core providing base utilities and specialized frame
 
 This repository is a Maven multi-module project:
 
-- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API client, scenario/failure context, logging (`BaseFailureCatcher`, `PrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
+- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API request spec (`BaseApiSpec`), scenario/failure context, logging (`BaseFailureCatcher`, `PrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
 - **`web`**: Web automation framework built on top of [Microsoft Playwright](https://playwright.dev/java/).
 - **`mobile`**: Mobile automation framework built on top of [Appium](https://appium.io/) and Selenium, supporting both Android and iOS.
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.3`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.4`):
 
 ```xml
 <repositories>
@@ -30,7 +30,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332.test-core</groupId>
         <artifactId>base</artifactId>
-        <version>4.0.3</version>
+        <version>4.0.4</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -61,6 +61,45 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 4.0.4
+
+## Changes
+
+### Base Core
+- `BaseApiClient` -> `BaseApiSpec`: same methods, plus a `filters()` hook for REST-assured filters applied to every spec (e.g. a report attachment), and every spec logs the full request and response when a `then()` check fails
+- `Hardly` lives in `com.dnestr.base.assertions` only; the web and mobile copies are removed. For a web assertion that retries on a `Locator`, use Playwright's `PlaywrightAssertions.assertThat(locator)`
+
+### Web Core
+- `TestBrowser` moved from `com.dnestr.web.enums` to `com.dnestr.web.config`
+- `ElementActions.text` falls back to `inputValue` only on form controls (`<input>`, `<textarea>`, `<select>`), since Playwright throws for any other element
+
+### Mobile Core
+- On iOS `ElementActions.click` taps once two reads of the element's position agree: UIKit drops a tap on a view still sliding in, such as a sheet being presented
+- `ElementActions.clickNative` (the fallback after a failed click) refuses on iOS an element that is not on screen — scrolled away or under the keyboard — with an `ElementNotInteractableException` saying so; both iOS fallbacks are coordinate taps, which used to press whatever was drawn there instead (a key of the keyboard, the tab bar). On both platforms it also refuses a disabled element, where the tap did nothing yet the step logged OK
+- `BaseAssertionFlow.verifyVisible(..., HIDDEN)` waits up to the short timeout for the element to go, instead of failing while it is still animating away
+- `AppInteractionUtils.scrollIntoView` on iOS returns an element already on screen without scrolling, then drags up until it shows, and only then scrolls by predicate (`mobile: scroll`, for an element above the current position). On a React Native `ScrollView` that scroll goes back and forth for about a minute before failing; it still throws when neither reaches the element
+- `AppInteractionUtils.dragUpUntil` drags from 45% to 15% of the screen height, above a bottom footer or keyboard where a drag scrolls nothing
+
+## Fixes
+
+### Mobile Core
+- `FallbackActions.clickNativeByPlatform` on Android no longer throws `ClassCastException`: java-client 11 returns an `AppiumWebElement`, which is not a `RemoteWebElement`
+- `MobileValidationUtils.isChecked` reads React Native's iOS value for a checkbox, `checkbox, checked` / `checkbox, not checked`, which it used to read as unchecked either way
+
+## Base Core
+
+### Additions
+- `RateLimitRetry.onRateLimit` - re-sends a call answered with `429 Too Many Requests`, waiting the server's `Retry-After` or a linear back-off, and returns the last 429 once the retries are used up
+
+## Mobile Core
+
+### Additions
+- `MobileElementUtils.referenceId` - the element's WebDriver reference for `mobile:` commands, for `AppiumWebElement` and `RemoteWebElement` alike
+- `AppInteractionUtils.dragUpUntil` - finger drags up until a condition holds; a React Native scroll view can ignore WebDriverAgent's swipe, but not a drag
+- `ElementActions.isHidden` and `DriverWait.invisibleShort` - whether / wait until an element is gone or no longer displayed, within the short timeout
+- `SystemLocators.iosAlert`, `iosAlertTitle` and `iosAlertMessage`
+- `FallbackActions.requireTappable`
 
 # 4.0.3
 

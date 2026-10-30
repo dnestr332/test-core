@@ -62,4 +62,13 @@ class SystemLocatorsTest {
         assertThat(SystemLocators.iosKeyboardDoneButton()).isEqualTo(AppiumBy.iOSNsPredicateString(
                 "name == 'Done' AND type IN {'XCUIElementTypeButton', 'XCUIElementTypeStaticText'}"));
     }
+
+    @Test
+    void iosAlertTitleAndMessageAreTheAlertsFirstAndSecondTexts() {
+        assertThat(SystemLocators.iosAlert()).isEqualTo(By.xpath("//XCUIElementTypeAlert"));
+        assertThat(SystemLocators.iosAlertTitle())
+                .isEqualTo(By.xpath("(//XCUIElementTypeAlert//XCUIElementTypeStaticText)[1]"));
+        assertThat(SystemLocators.iosAlertMessage())
+                .isEqualTo(By.xpath("(//XCUIElementTypeAlert//XCUIElementTypeStaticText)[2]"));
+    }
 }

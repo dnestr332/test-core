@@ -1,28 +1,56 @@
 package com.dnestr.base.api;
 
 import io.restassured.RestAssured;
+import io.restassured.config.LogConfig;
+import io.restassured.config.RestAssuredConfig;
+import io.restassured.filter.Filter;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 
+import java.util.List;
 import java.util.Map;
 
 /**
- * Base for a REST-assured API client backing a single service, meant to be extended (one subclass
- * per service/base-URL). Subclasses supply {@link #getUrl()}/{@link #getPath()} and then either use
- * {@link #baseSpec()} directly for unauthenticated calls, or one of the {@code with*} helpers to
- * layer a specific auth scheme on top before issuing the request via RestAssured's fluent API.
+ * Base for the REST-assured request configuration of a single service, meant to be extended (one
+ * subclass per service/base-URL). Subclasses supply {@link #getUrl()}/{@link #getPath()} and expose
+ * either {@link #baseSpec()} for unauthenticated calls or one of the {@code with*} helpers to layer a
+ * specific auth scheme on top. This class only builds the {@link RequestSpecification}; sending the
+ * request (endpoint, body, method) is left to the caller, typically a service class that injects
+ * the subclass.
+ * <p>
+ * Every spec logs the full request and response when a {@code then()} check on it fails (and stays
+ * quiet otherwise), so callers don't need {@code .log().ifValidationFails()} on each call. Extra
+ * REST-assured filters, e.g. a report-attachment filter, are added by overriding {@link #filters()}.
+ * To retry a call on {@code 429 Too Many Requests}, wrap it in {@link RateLimitRetry#onRateLimit}.
  */
-public abstract class BaseApiClient {
+public abstract class BaseApiSpec {
 
     /** The service's base URI, e.g. {@code https://api.example.com}. */
     protected abstract String getUrl();
 
-    /** The base path appended to {@link #getUrl()} for every request from this client, e.g. {@code /v1}. */
+    /** The base path appended to {@link #getUrl()} for every request built from this spec, e.g. {@code /v1}. */
     protected abstract String getPath();
 
-    /** A request spec pointed at {@link #getUrl()}/{@link #getPath()}, sending and expecting JSON, with no authentication applied. */
+    /**
+     * REST-assured filters applied to every spec this class builds, in order. Empty by default.
+     * Override to add e.g. a reporting filter such as Allure's {@code AllureRestAssured}, without
+     * this library depending on Allure.
+     */
+    protected List<Filter> filters() {
+        return List.of();
+    }
+
+    /**
+     * A request spec pointed at {@link #getUrl()}/{@link #getPath()}, sending and expecting JSON,
+     * with no authentication applied, request/response logging on validation failure, and
+     * {@link #filters()} attached.
+     */
     public RequestSpecification baseSpec() {
+        RestAssuredConfig config = RestAssured.config()
+                .logConfig(LogConfig.logConfig().enableLoggingOfRequestAndResponseIfValidationFails());
         return RestAssured.given()
+                .config(config)
+                .filters(filters())
                 .baseUri(getUrl())
                 .basePath(getPath())
                 .accept(ContentType.JSON)

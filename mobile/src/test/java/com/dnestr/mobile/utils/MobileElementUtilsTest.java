@@ -1,5 +1,8 @@
 package com.dnestr.mobile.utils;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.openqa.selenium.remote.RemoteWebElement;
+import io.appium.java_client.remote.AppiumWebElement;
 import com.dnestr.mobile.context.TestContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -112,5 +115,23 @@ class MobileElementUtilsTest {
 
     private static Rectangle rect(int x, int y, int width, int height) {
         return new Rectangle(new Point(x, y), new Dimension(width, height));
+    }
+
+    @Test
+    void referenceIdReadsTheIdOfBothDriverElementTypes() {
+        AppiumWebElement appium = mock(AppiumWebElement.class);
+        RemoteWebElement remote = mock(RemoteWebElement.class);
+        when(appium.getId()).thenReturn("appium-id");
+        when(remote.getId()).thenReturn("remote-id");
+
+        assertThat(MobileElementUtils.referenceId(appium)).isEqualTo("appium-id");
+        assertThat(MobileElementUtils.referenceId(remote)).isEqualTo("remote-id");
+    }
+
+    @Test
+    void referenceIdRefusesAnElementNotFromADriver() {
+        assertThatThrownBy(() -> MobileElementUtils.referenceId(element))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("is not a driver element");
     }
 }

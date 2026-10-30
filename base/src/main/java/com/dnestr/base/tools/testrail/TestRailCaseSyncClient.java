@@ -201,6 +201,5 @@ public class TestRailCaseSyncClient {
     }
 
     /** A resolved TestRail custom case field, as found by {@link #resolveField}/{@link #resolveRequiredField}. */
-    public record CaseField(String systemName, String label, Integer typeId) {
-    }
+    public record CaseField(String systemName, String label, Integer typeId) {}
 }

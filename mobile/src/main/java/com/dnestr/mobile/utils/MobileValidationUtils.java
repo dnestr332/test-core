@@ -5,6 +5,7 @@ import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 
 import javax.imageio.ImageIO;
+import java.util.Arrays;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -40,13 +41,15 @@ public final class MobileValidationUtils {
     }
 
     /**
-     * Whether a checkbox or switch is on: Android's {@code checked} attribute, iOS's {@code value} ({@code 1},
-     * {@code true} or {@code checked}). Returns {@code false} rather than throwing if the element can't be inspected.
+     * Whether a checkbox or switch is on: Android's {@code checked} attribute, iOS's {@code value} ({@code 1} for a
+     * switch; React Native reports a checkbox's role and state together, as {@code checkbox, checked}). Returns
+     * {@code false} rather than throwing if the element can't be inspected.
      */
     public static boolean isChecked(WebElement element) {
         try {
             String state = element.getAttribute(TestContext.isIos() ? "value" : "checked");
-            return "true".equalsIgnoreCase(state) || "1".equals(state) || "checked".equalsIgnoreCase(state);
+            return state != null && Arrays.stream(state.split(",")).map(String::strip).anyMatch(
+                    part -> "true".equalsIgnoreCase(part) || "1".equals(part) || "checked".equalsIgnoreCase(part));
         } catch (WebDriverException e) {
             return false;
         }

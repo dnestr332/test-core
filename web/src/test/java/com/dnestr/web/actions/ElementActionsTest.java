@@ -100,12 +100,14 @@ class ElementActionsTest {
         String result = actions.text(locator);
 
         assertThat(result).isEqualTo("hello");
+        verify(locator, never()).evaluate(anyString());
         verify(locator, never()).inputValue();
     }
 
     @Test
-    void text_fallsBackToInputValue_whenInnerTextBlank() {
+    void text_fallsBackToInputValue_whenInnerTextBlankOnFormControl() {
         when(locator.innerText()).thenReturn("   ");
+        when(locator.evaluate(anyString())).thenReturn(true);
         when(locator.inputValue()).thenReturn(" value ");
 
         String result = actions.text(locator);
@@ -114,13 +116,25 @@ class ElementActionsTest {
     }
 
     @Test
-    void text_returnsEmptyString_whenBothInnerTextAndInputValueBlank() {
+    void text_returnsEmptyString_whenFormControlValueBlank() {
         when(locator.innerText()).thenReturn("");
-        when(locator.inputValue()).thenReturn(null);
+        when(locator.evaluate(anyString())).thenReturn(true);
+        when(locator.inputValue()).thenReturn("  ");
 
         String result = actions.text(locator);
 
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void text_returnsEmptyString_withoutReadingInputValue_whenBlankNonFormElement() {
+        when(locator.innerText()).thenReturn("");
+        when(locator.evaluate(anyString())).thenReturn(false);
+
+        String result = actions.text(locator);
+
+        assertThat(result).isEmpty();
+        verify(locator, never()).inputValue();
     }
 
     @Test
