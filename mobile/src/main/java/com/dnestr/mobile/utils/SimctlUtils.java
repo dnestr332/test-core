@@ -1,6 +1,7 @@
 package com.dnestr.mobile.utils;
 
 import com.dnestr.base.utils.ProcessUtils;
+import lombok.experimental.UtilityClass;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,19 +14,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** iOS simulator control through {@code xcrun simctl}, which needs Xcode's command-line tools. */
-public final class SimctlUtils {
+@UtilityClass
+public class SimctlUtils {
 
-    private static final Pattern RUNTIME = Pattern.compile("^-- iOS ([\\d.]+) --$");
-    private static final Pattern BOOTED = Pattern.compile("^\\s+(.+?) \\(([0-9A-F-]{36})\\) \\(Booted\\)\\s*$");
-    private static final Pattern SHORT_VERSION = Pattern.compile("CFBundleShortVersionString\\s*=\\s*\"?([^\";]+)\"?;");
-
-    private SimctlUtils() {}
+    private final Pattern RUNTIME = Pattern.compile("^-- iOS ([\\d.]+) --$");
+    private final Pattern BOOTED = Pattern.compile("^\\s+(.+?) \\(([0-9A-F-]{36})\\) \\(Booted\\)\\s*$");
+    private final Pattern SHORT_VERSION = Pattern.compile("CFBundleShortVersionString\\s*=\\s*\"?([^\";]+)\"?;");
 
     /** A simulator as {@code simctl} lists it, with the iOS version of its runtime. */
     public record IosSimulator(String udid, String name, String platformVersion) {}
 
     /** The booted iOS simulators, with the iOS version of the runtime each runs. */
-    public static List<IosSimulator> getBootedIosSimulators() {
+    public List<IosSimulator> getBootedIosSimulators() {
         List<IosSimulator> simulators = new ArrayList<>();
         String version = null;
         for (String line : ProcessUtils.run("xcrun", "simctl", "list", "devices")) {
@@ -43,7 +43,7 @@ public final class SimctlUtils {
     }
 
     /** The version ({@code CFBundleShortVersionString}) of the app installed on the simulator; empty when it is not installed. */
-    public static Optional<String> getIosSimulatorAppVersion(String udid, String bundleId) {
+    public Optional<String> getIosSimulatorAppVersion(String udid, String bundleId) {
         for (String line : ProcessUtils.run("xcrun", "simctl", "appinfo", udid, bundleId)) {
             Matcher version = SHORT_VERSION.matcher(line);
             if (version.find()) return Optional.of(version.group(1).trim());
@@ -57,7 +57,7 @@ public final class SimctlUtils {
      *
      * @throws IllegalStateException if simctl does not report the notification as sent
      */
-    public static void sendIosSimulatorPush(String udid, String bundleId, String payloadJson) {
+    public void sendIosSimulatorPush(String udid, String bundleId, String payloadJson) {
         Path payload = null;
         try {
             payload = Files.createTempFile("push", ".apns");
@@ -73,7 +73,7 @@ public final class SimctlUtils {
         }
     }
 
-    private static void deleteQuietly(Path file) {
+    private void deleteQuietly(Path file) {
         if (file == null) return;
         try {
             Files.deleteIfExists(file);

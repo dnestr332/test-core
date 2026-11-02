@@ -8,6 +8,7 @@ import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.HasOnScreenKeyboard;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
@@ -44,16 +45,15 @@ import static com.dnestr.base.logs.LogStyles.*;
  * its name and throws {@link UnsupportedOperationException} on the other.
  */
 @Slf4j
+@UtilityClass
 public class AppInteractionUtils {
 
-    private static final int MAX_REVEAL_DRAGS = 4;
-    private static final Duration DRAG_DURATION = Duration.ofMillis(500);
-
-    private AppInteractionUtils() {}
+    private final int MAX_REVEAL_DRAGS = 4;
+    private final Duration DRAG_DURATION = Duration.ofMillis(500);
 
     //region TAPS & GESTURES
     /** Performs a single tap at the given viewport coordinates via a synthetic touch pointer gesture. */
-    public static void tapByCoordinates(int x, int y, AppiumDriver driver) {
+    public void tapByCoordinates(int x, int y, AppiumDriver driver) {
         log.info("{} {} Tapping coordinates ({}, {})", INFO_SHORT, INFO, x, y);
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
@@ -67,7 +67,7 @@ public class AppInteractionUtils {
     }
 
     /** Taps near the top-center of the screen (10% down from the top) — e.g. for dismissing a top banner or reaching a safe-area control. */
-    public static void tapTopSafeArea(AppiumDriver driver) {
+    public void tapTopSafeArea(AppiumDriver driver) {
         Dimension size = driver.manage().window().getSize();
 
         int x = size.getWidth() / 2;
@@ -77,7 +77,7 @@ public class AppInteractionUtils {
     }
 
     /** Taps a point unlikely to hit any interactive element (center-horizontal, upper-quarter vertical) — e.g. to dismiss a keyboard/popover by tapping "outside" it. */
-    public static void tapNeutralArea(AppiumDriver driver) {
+    public void tapNeutralArea(AppiumDriver driver) {
         int w = driver.manage().window().getSize().getWidth();
         int h = driver.manage().window().getSize().getHeight();
 
@@ -88,7 +88,7 @@ public class AppInteractionUtils {
     }
 
     /** Taps the center of {@code element} twice, 150 ms apart, as one gesture. */
-    public static void doubleTap(WebElement element, AppiumDriver driver) {
+    public void doubleTap(WebElement element, AppiumDriver driver) {
         Point center = MobileElementUtils.centerOf(element);
         log.info("{} {} Double-tapping ({}, {})", INFO_SHORT, INFO, center.getX(), center.getY());
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
@@ -105,7 +105,7 @@ public class AppInteractionUtils {
     }
 
     /** Presses and holds the center of {@code element} for {@code hold} before releasing, via a synthetic touch pointer gesture — e.g. to open a context menu or start a drag. */
-    public static void longPress(WebElement element, Duration hold, AppiumDriver driver) {
+    public void longPress(WebElement element, Duration hold, AppiumDriver driver) {
         Point center = MobileElementUtils.centerOf(element);
         log.info("{} {} Long-pressing ({}, {}) for {} ms", INFO_SHORT, INFO, center.getX(), center.getY(), hold.toMillis());
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
@@ -123,7 +123,7 @@ public class AppInteractionUtils {
      * Presses at {@code from}, holds for {@code hold}, moves to {@code to} over {@code move}, then releases — a
      * reorderable list only picks a row up after the hold.
      */
-    public static void dragAndDrop(Point from, Point to, Duration hold, Duration move, AppiumDriver driver) {
+    public void dragAndDrop(Point from, Point to, Duration hold, Duration move, AppiumDriver driver) {
         log.info("{} {} Dragging ({}, {}) to ({}, {})", INFO_SHORT, INFO, from.getX(), from.getY(), to.getX(), to.getY());
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
@@ -145,7 +145,7 @@ public class AppInteractionUtils {
      *
      * @throws IllegalArgumentException if {@code strokes} is less than 1
      */
-    public static void drawWithFinger(Rectangle box, int strokes, AppiumDriver driver) {
+    public void drawWithFinger(Rectangle box, int strokes, AppiumDriver driver) {
         if (strokes < 1) {
             throw new IllegalArgumentException("strokes must be at least 1, was " + strokes);
         }
@@ -177,7 +177,7 @@ public class AppInteractionUtils {
      * passed as the {@code direction} of a {@code mobile: swipeGesture} over a fixed screen region
      * ({@code left=100, top=600, width=800, height=1000}, {@code percent=0.85}).
      */
-    public static void swipe(AppiumDriver driver, String direction) {
+    public void swipe(AppiumDriver driver, String direction) {
         log.info("{} {} Swipe {} gesture", INFO_SHORT, INFO, direction);
 
         if (TestContext.isIos()) {
@@ -196,12 +196,12 @@ public class AppInteractionUtils {
     }
 
     /** {@link #swipe} with direction {@code "up"}. */
-    public static void swipeUp(AppiumDriver driver) {
+    public void swipeUp(AppiumDriver driver) {
         swipe(driver, "up");
     }
 
     /** {@link #swipe} with direction {@code "down"} — see {@link #swipe}'s docs for the current Android caveat (this is actually an "up" swipe on Android). */
-    public static void swipeDown(AppiumDriver driver) {
+    public void swipeDown(AppiumDriver driver) {
         swipe(driver, "down");
     }
 
@@ -210,7 +210,7 @@ public class AppInteractionUtils {
      * last; returns whether it held. For a list that loads more rows as its end comes into view, where
      * {@link #scrollIntoView} has nothing to search for yet.
      */
-    public static boolean swipeUpUntil(BooleanSupplier done, int maxSwipes, AppiumDriver driver) {
+    public boolean swipeUpUntil(BooleanSupplier done, int maxSwipes, AppiumDriver driver) {
         for (int swipe = 0; swipe < maxSwipes; swipe++) {
             if (done.getAsBoolean()) return true;
             swipeUp(driver);
@@ -222,7 +222,7 @@ public class AppInteractionUtils {
      * Whether a swipe up moved the screen: compares screenshots taken before and after it with
      * {@link MobileValidationUtils#areImagesDifferent} at {@code threshold}. The swipe stays done.
      */
-    public static boolean isScrollableBySwipeUp(AppiumDriver driver, double threshold) {
+    public boolean isScrollableBySwipeUp(AppiumDriver driver, double threshold) {
         byte[] before = driver.getScreenshotAs(OutputType.BYTES);
         swipeUp(driver);
         byte[] after = driver.getScreenshotAs(OutputType.BYTES);
@@ -238,7 +238,7 @@ public class AppInteractionUtils {
      * and collection views only, and on a React Native {@code ScrollView} it scrolls back and forth for about a minute
      * before giving up, so it is the fallback for an element above the current position.
      */
-    public static WebElement scrollIntoView(String id, AppiumDriver driver) {
+    public WebElement scrollIntoView(String id, AppiumDriver driver) {
         log.info("{} {} Scrolling to '{}'", INFO_SHORT, INFO, id);
 
         if (TestContext.isIos()) {
@@ -257,7 +257,7 @@ public class AppInteractionUtils {
      * {@code maxDrags} times; returns whether it held. WebDriverAgent's swipe is a flick a React Native scroll view
      * can ignore, which a drag is not. It starts above a bottom footer and keyboard, where a drag scrolls nothing.
      */
-    public static boolean dragUpUntil(BooleanSupplier done, int maxDrags, AppiumDriver driver) {
+    public boolean dragUpUntil(BooleanSupplier done, int maxDrags, AppiumDriver driver) {
         Dimension size = driver.manage().window().getSize();
         Point from = new Point(size.getWidth() / 2, (int) (size.getHeight() * 0.45));
         Point to = new Point(from.getX(), (int) (size.getHeight() * 0.15));
@@ -269,7 +269,7 @@ public class AppInteractionUtils {
     }
 
     /** {@code isDisplayed} also counts the clipping of a scroll view, which an element's position alone does not show. */
-    private static boolean isDisplayed(By locator, AppiumDriver driver) {
+    private boolean isDisplayed(By locator, AppiumDriver driver) {
         List<WebElement> found = driver.findElements(locator);
         return !found.isEmpty() && found.getFirst().isDisplayed();
     }
@@ -278,7 +278,7 @@ public class AppInteractionUtils {
      * {@link #scrollIntoView(String, AppiumDriver)}, retried every second until {@code timeout} for a list that is
      * still loading or redraws while it is searched; the last failure is rethrown once time is up.
      */
-    public static WebElement scrollIntoView(String id, Duration timeout, AppiumDriver driver) {
+    public WebElement scrollIntoView(String id, Duration timeout, AppiumDriver driver) {
         long deadline = System.nanoTime() + timeout.toNanos();
         while (true) {
             try {
@@ -298,7 +298,7 @@ public class AppInteractionUtils {
      * or Done key, then falls back to a tap near the top of the screen. On Android it is only logged: pressing Back instead leaves the screen whenever the keyboard
      * was not really up, and an emulator with a hardware keyboard reports one shown while drawing none.
      */
-    public static void hideKeyboard(AppiumDriver driver) {
+    public void hideKeyboard(AppiumDriver driver) {
         if (driver instanceof HasOnScreenKeyboard keyboard && !keyboard.isKeyboardShown()) return;
         try {
             if (TestContext.isAndroid()) {
@@ -317,7 +317,7 @@ public class AppInteractionUtils {
     }
 
     /** WebDriverAgent cannot dismiss a keyboard whose only way out is its return key, such as React Native's default one. */
-    private static boolean pressIosKeyboardDismissKey(AppiumDriver driver) {
+    private boolean pressIosKeyboardDismissKey(AppiumDriver driver) {
         try {
             List<WebElement> keys = driver.findElements(SystemLocators.iosKeyboardDismissKey());
             if (keys.isEmpty()) return false;
@@ -329,7 +329,7 @@ public class AppInteractionUtils {
         }
     }
 
-    private static void tapNearTopQuietly(AppiumDriver driver) {
+    private void tapNearTopQuietly(AppiumDriver driver) {
         try {
             Dimension size = driver.manage().window().getSize();
             tapByCoordinates(size.getWidth() / 2, size.getHeight() / 10, driver);
@@ -339,13 +339,13 @@ public class AppInteractionUtils {
     }
 
     /** Taps "Done" on the iOS keyboard's toolbar, which a number pad needs to close. */
-    public static void tapIosKeyboardDoneButton(AppiumDriver driver) {
+    public void tapIosKeyboardDoneButton(AppiumDriver driver) {
         PlatformGuards.requireIos("the keyboard's Done button");
         driver.findElement(SystemLocators.iosKeyboardDoneButton()).click();
     }
 
     /** Types {@code text} into whichever element has focus, for an input the UI tree leaves out (e.g. a 1x1 code field). */
-    public static void typeIntoFocusedElement(String text, AppiumDriver driver) {
+    public void typeIntoFocusedElement(String text, AppiumDriver driver) {
         new Actions(driver).sendKeys(text).perform();
     }
     //endregion
@@ -355,7 +355,7 @@ public class AppInteractionUtils {
      * Every text in the current page source, in document order and without repeats: Android's {@code text}
      * attributes, iOS's {@code label} and {@code value}. Covers screens of other apps (a dialer, a browser) too.
      */
-    public static List<String> getPageSourceTexts(AppiumDriver driver) {
+    public List<String> getPageSourceTexts(AppiumDriver driver) {
         List<String> attributes = TestContext.isIos() ? List.of("label", "value") : List.of("text");
         Set<String> texts = new LinkedHashSet<>();
         try {

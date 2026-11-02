@@ -2,6 +2,7 @@ package com.dnestr.mobile.utils;
 
 import com.dnestr.mobile.context.TestContext;
 import io.appium.java_client.remote.AppiumWebElement;
+import lombok.experimental.UtilityClass;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.Point;
@@ -15,12 +16,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Element read/write helpers that account for Android/iOS differences in how a value or text is actually exposed on a {@link WebElement}. */
-public final class MobileElementUtils {
-
-    private MobileElementUtils() {}
+@UtilityClass
+public class MobileElementUtils {
 
     /** Clicks the element, clears any existing value, then types {@code value} — the standard "replace a field's content" sequence. */
-    public static void updateValue(WebElement element, String value) {
+    public void updateValue(WebElement element, String value) {
         element.click();
         element.clear();
         element.sendKeys(value);
@@ -32,7 +32,7 @@ public final class MobileElementUtils {
      * first, falling back to {@code label}, and finally {@code ""} if neither is set; on Android,
      * {@code element.getText()} is used directly.
      */
-    public static String getActualText(WebElement element) {
+    public String getActualText(WebElement element) {
         if (TestContext.isIos()) {
             String value = element.getAttribute("value");
             if (value != null && !value.isBlank()) {
@@ -51,7 +51,7 @@ public final class MobileElementUtils {
     }
 
     /** {@link #getActualText} applied to every element in {@code target}, in order. */
-    public static List<String> getListOfText(List<WebElement> target) {
+    public List<String> getListOfText(List<WebElement> target) {
         return target.stream()
                 .map(MobileElementUtils::getActualText)
                 .map(String::trim)
@@ -62,14 +62,14 @@ public final class MobileElementUtils {
      * Clicks the element, deletes up to {@code charactersToDelete} characters with Backspace, then types
      * {@code value} — for an iOS field whose {@code clear()} leaves the old value in place.
      */
-    public static void replaceValueByBackspace(WebElement element, int charactersToDelete, String value) {
+    public void replaceValueByBackspace(WebElement element, int charactersToDelete, String value) {
         element.click();
         element.sendKeys(Keys.BACK_SPACE.toString().repeat(charactersToDelete));
         element.sendKeys(value);
     }
 
     /** The trimmed {@link #getActualText} of the first element under {@code root} matching {@code child}; {@code ""} when none does. */
-    public static String childText(WebElement root, By child) {
+    public String childText(WebElement root, By child) {
         List<WebElement> matches = root.findElements(child);
         return matches.isEmpty() ? "" : getActualText(matches.getFirst());
     }
@@ -78,13 +78,13 @@ public final class MobileElementUtils {
      * The element's id: its {@code resource-id} on Android, its {@code name} on iOS — where a React Native testID
      * lands on each. {@code ""} when it has none.
      */
-    public static String getId(WebElement element) {
+    public String getId(WebElement element) {
         String id = element.getAttribute(TestContext.isIos() ? "name" : "resource-id");
         return id == null ? "" : id;
     }
 
     /** The element's WebDriver reference, which {@code mobile:} commands take as {@code elementId}. */
-    public static String referenceId(WebElement element) {
+    public String referenceId(WebElement element) {
         return switch (element) {
             case AppiumWebElement appium -> appium.getId();
             case RemoteWebElement remote -> remote.getId();
@@ -93,12 +93,12 @@ public final class MobileElementUtils {
     }
 
     /** The center of the element's bounding box. */
-    public static Point centerOf(WebElement element) {
+    public Point centerOf(WebElement element) {
         return centerOf(element.getRect());
     }
 
     /** The center of {@code box}. */
-    public static Point centerOf(Rectangle box) {
+    public Point centerOf(Rectangle box) {
         return new Point(box.getX() + box.getWidth() / 2, box.getY() + box.getHeight() / 2);
     }
 
@@ -106,7 +106,7 @@ public final class MobileElementUtils {
      * The element whose vertical center is nearest {@code container}'s — the selected row of a wheel picker, which is
      * the one drawn across its center line. Empty for an empty list.
      */
-    public static Optional<WebElement> closestToCenterY(List<WebElement> elements, Rectangle container) {
+    public Optional<WebElement> closestToCenterY(List<WebElement> elements, Rectangle container) {
         int centerY = centerOf(container).getY();
         return elements.stream()
                 .min(Comparator.comparingInt(element -> Math.abs(centerOf(element).getY() - centerY)));

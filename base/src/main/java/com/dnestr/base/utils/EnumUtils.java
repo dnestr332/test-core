@@ -1,5 +1,7 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -9,9 +11,8 @@ import java.util.stream.Collectors;
  * {@link Enum#valueOf}. Every method here is tolerant of the same messy input; they differ only in
  * what happens when the value doesn't match any constant.
  */
+@UtilityClass
 public class EnumUtils {
-
-    private EnumUtils() {}
 
     /**
      * Normalizes {@code rawValue} via {@link #toEnumKey} and resolves it against {@code enumClass}.
@@ -19,7 +20,7 @@ public class EnumUtils {
      * @throws IllegalArgumentException if {@code rawValue} is null/blank, or matches no constant
      *                                  of {@code enumClass} (message lists the available options)
      */
-    public static <T extends Enum<T>> T parse(Class<T> enumClass, String rawValue) {
+    public <T extends Enum<T>> T parse(Class<T> enumClass, String rawValue) {
         if (rawValue == null || rawValue.isBlank()) {
             throw new IllegalArgumentException(
                     String.format("Value for %s cannot be null or blank.",
@@ -47,7 +48,7 @@ public class EnumUtils {
     }
 
     /** Like {@link #parse}, but returns {@code null} instead of throwing on a null/blank/unmatched value. */
-    public static <T extends Enum<T>> T tryParse(Class<T> enumClass, String rawValue) {
+    public <T extends Enum<T>> T tryParse(Class<T> enumClass, String rawValue) {
         try {
             return parse(enumClass, rawValue);
         } catch (Exception ignored) {
@@ -56,13 +57,13 @@ public class EnumUtils {
     }
 
     /** Like {@link #tryParse}, but returns {@code defaultValue} instead of {@code null} when parsing fails. */
-    public static <T extends Enum<T>> T parseOrDefault(Class<T> enumClass, String rawValue, T defaultValue) {
+    public <T extends Enum<T>> T parseOrDefault(Class<T> enumClass, String rawValue, T defaultValue) {
         T result = tryParse(enumClass, rawValue);
         return result != null ? result : defaultValue;
     }
 
     /** Whether {@code rawValue} would successfully resolve to a constant of {@code enumClass} via {@link #parse}. */
-    public static <T extends Enum<T>> boolean isValid(Class<T> enumClass, String rawValue) {
+    public <T extends Enum<T>> boolean isValid(Class<T> enumClass, String rawValue) {
         return tryParse(enumClass, rawValue) != null;
     }
 
@@ -73,7 +74,7 @@ public class EnumUtils {
      *
      * @throws IllegalArgumentException if {@code sealedType} is not sealed, or no permitted enum has the constant
      */
-    public static <T> T parseSealed(Class<T> sealedType, String rawValue) {
+    public <T> T parseSealed(Class<T> sealedType, String rawValue) {
         if (!sealedType.isSealed()) {
             throw new IllegalArgumentException(sealedType.getSimpleName() + " is not a sealed type");
         }
@@ -93,7 +94,7 @@ public class EnumUtils {
      * leading/trailing {@code _}. E.g. {@code "  read - only! "} → {@code "READ_ONLY"}. Returns
      * {@code ""} for a {@code null} input.
      */
-    public static String toEnumKey(String s) {
+    public String toEnumKey(String s) {
         return s == null ? "" :
                 s.trim().toUpperCase()
                         .replaceAll("[^A-Z0-9]+", "_")

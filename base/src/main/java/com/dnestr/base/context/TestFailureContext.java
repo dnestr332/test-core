@@ -1,5 +1,7 @@
 package com.dnestr.base.context;
 
+import lombok.experimental.UtilityClass;
+
 /**
  * Thread-local holder for the most recent action failure, written by {@code BaseFailureCatcher}
  * right before it rethrows, and read afterward by anything that wants to know what broke without
@@ -9,24 +11,23 @@ package com.dnestr.base.context;
  * scenarios (e.g. in an {@code @AfterEach}/{@code @After}) so a thread reused for the next test
  * doesn't see a stale error from a previous one.
  */
-public final class TestFailureContext {
+@UtilityClass
+public class TestFailureContext {
 
-    private static final ThreadLocal<Throwable> LAST_ERROR = new ThreadLocal<>();
-
-    private TestFailureContext() {}
+    private final ThreadLocal<Throwable> LAST_ERROR = new ThreadLocal<>();
 
     /** Records {@code throwable} as the current thread's last failure. */
-    public static void setError(Throwable throwable) {
+    public void setError(Throwable throwable) {
         LAST_ERROR.set(throwable);
     }
 
     /** Returns the current thread's last recorded failure, or {@code null} if none is set. */
-    public static Throwable getError() {
+    public Throwable getError() {
         return LAST_ERROR.get();
     }
 
     /** Clears the current thread's recorded failure. */
-    public static void clear() {
+    public void clear() {
         LAST_ERROR.remove();
     }
 }

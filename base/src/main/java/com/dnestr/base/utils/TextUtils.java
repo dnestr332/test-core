@@ -1,5 +1,7 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -11,12 +13,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Reads values out of text as a UI shows it (e.g. {@code "Total: $1,234.56"}): numbers, digits and dates. */
-public final class TextUtils {
+@UtilityClass
+public class TextUtils {
 
     /** A year letter outside quoted literal text; a defaulted year would clash with a parsed one. */
-    private static final Pattern HAS_YEAR = Pattern.compile("^(?:[^']|'[^']*')*?[yuY]");
-
-    private TextUtils() {}
+    private final Pattern HAS_YEAR = Pattern.compile("^(?:[^']|'[^']*')*?[yuY]");
 
     /**
      * Finds and parses the first (optionally negative, optionally decimal) number in {@code raw},
@@ -24,7 +25,7 @@ public final class TextUtils {
      *
      * @throws IllegalArgumentException if {@code raw} contains no numeric substring
      */
-    public static double getStringAsDouble(String raw) {
+    public double getStringAsDouble(String raw) {
         Matcher matcher = Pattern.compile("-?\\d+(\\.\\d+)?").matcher(raw);
         if (matcher.find()) return Double.parseDouble(matcher.group());
         throw new IllegalArgumentException("No numeric value found in: " + raw);
@@ -36,7 +37,7 @@ public final class TextUtils {
      *
      * @throws IllegalArgumentException if {@code raw} contains no numeric substring
      */
-    public static double getStringAsDoubleReplaceCommas(String raw) {
+    public double getStringAsDoubleReplaceCommas(String raw) {
         Matcher matcher = Pattern.compile("[\\d,]+(?:\\.\\d+)?").matcher(raw);
         if (matcher.find()) {
             return Double.parseDouble(matcher.group().replace(",", ""));
@@ -50,7 +51,7 @@ public final class TextUtils {
      *
      * @throws IllegalArgumentException if {@code raw} has no {@code marker}, or no number follows the last one
      */
-    public static double getAmountAfterLast(String raw, char marker) {
+    public double getAmountAfterLast(String raw, char marker) {
         int at = raw.lastIndexOf(marker);
         if (at < 0) {
             throw new IllegalArgumentException("No '%s' in: %s".formatted(marker, raw));
@@ -64,7 +65,7 @@ public final class TextUtils {
      *
      * @throws IllegalArgumentException if {@code count} is negative
      */
-    public static String lastDigits(String raw, int count) {
+    public String lastDigits(String raw, int count) {
         if (count < 0) {
             throw new IllegalArgumentException("count must not be negative, was " + count);
         }
@@ -77,7 +78,7 @@ public final class TextUtils {
      * collapsed, taking {@code defaultYear} when the pattern has no year, e.g. {@code "Mon, Jan 5, 9:30 AM"} with
      * {@code "EEE, MMM d, h:mm a"}. Empty when {@code raw} is null or blank, or no pattern fits.
      */
-    public static Optional<LocalDateTime> parseDateTime(String raw, Locale locale, int defaultYear, String... patterns) {
+    public Optional<LocalDateTime> parseDateTime(String raw, Locale locale, int defaultYear, String... patterns) {
         if (raw == null || raw.isBlank()) return Optional.empty();
 
         String normalized = raw.trim().replaceAll("\\s+", " ");

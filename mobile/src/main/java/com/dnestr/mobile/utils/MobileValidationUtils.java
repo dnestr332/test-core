@@ -1,6 +1,7 @@
 package com.dnestr.mobile.utils;
 
 import com.dnestr.mobile.context.TestContext;
+import lombok.experimental.UtilityClass;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 
@@ -11,9 +12,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 
 /** Reads of an element's or a screenshot's state that differ between Android and iOS, returned as booleans for the caller to assert. */
-public final class MobileValidationUtils {
-
-    private MobileValidationUtils() {}
+@UtilityClass
+public class MobileValidationUtils {
 
     /**
      * Whether {@code element} is enabled and interactable, platform-appropriately: on iOS, the
@@ -22,7 +22,7 @@ public final class MobileValidationUtils {
      * e.g. it's covered or its clickable flag is explicitly off). Returns {@code false} rather than
      * throwing if the element can't be inspected (e.g. it went stale mid-check).
      */
-    public static boolean isButtonEnabled(WebElement element) {
+    public boolean isButtonEnabled(WebElement element) {
         try {
             if (TestContext.isIos()) {
                 return Boolean.parseBoolean(element.getAttribute("enabled"));
@@ -45,7 +45,7 @@ public final class MobileValidationUtils {
      * switch; React Native reports a checkbox's role and state together, as {@code checkbox, checked}). Returns
      * {@code false} rather than throwing if the element can't be inspected.
      */
-    public static boolean isChecked(WebElement element) {
+    public boolean isChecked(WebElement element) {
         try {
             String state = element.getAttribute(TestContext.isIos() ? "value" : "checked");
             return state != null && Arrays.stream(state.split(",")).map(String::strip).anyMatch(
@@ -62,7 +62,7 @@ public final class MobileValidationUtils {
      * rendering noise (anti-aliasing, animation timing) doesn't register as a difference. Returns
      * {@code false} (not different) if either image fails to decode, or on any other error.
      */
-    public static boolean areImagesDifferent(byte[] a, byte[] b, double threshold) {
+    public boolean areImagesDifferent(byte[] a, byte[] b, double threshold) {
         try {
             BufferedImage ia = ImageIO.read(new ByteArrayInputStream(a));
             BufferedImage ib = ImageIO.read(new ByteArrayInputStream(b));

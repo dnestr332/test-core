@@ -1,5 +1,6 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -14,12 +15,11 @@ import java.time.LocalDate;
  * still usable without them.
  */
 @Slf4j
-public final class AllureReportUtils {
-
-    private AllureReportUtils() {}
+@UtilityClass
+public class AllureReportUtils {
 
     /** {@code environment.properties}: the platform, a report title and today's date. */
-    public static void writeEnvironment(String platform, Path resultsDir) {
+    public void writeEnvironment(String platform, Path resultsDir) {
         String properties = """
                 Platform=%1$s
                 ReportTitle=%1$s REPORT
@@ -29,7 +29,7 @@ public final class AllureReportUtils {
     }
 
     /** {@code executor.json}, naming the report after {@code platform}. */
-    public static void writeExecutor(String platform, Path resultsDir) {
+    public void writeExecutor(String platform, Path resultsDir) {
         String json = """
                 {
                   "name": "%1$s REPORT",
@@ -40,7 +40,7 @@ public final class AllureReportUtils {
         write(resultsDir.resolve("executor.json"), json);
     }
 
-    private static void write(Path file, String content) {
+    private void write(Path file, String content) {
         try {
             Files.createDirectories(file.getParent());
             Files.writeString(file, content, StandardCharsets.UTF_8);

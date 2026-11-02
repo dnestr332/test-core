@@ -2,6 +2,7 @@ package com.dnestr.base.api;
 
 import com.dnestr.base.utils.WaitUtils;
 import io.restassured.response.Response;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -27,14 +28,13 @@ import java.util.function.Supplier;
  * request: REST-assured's filter chain can only be walked once per request.
  */
 @Slf4j
-public final class RateLimitRetry {
+@UtilityClass
+public class RateLimitRetry {
 
-    private static final int TOO_MANY_REQUESTS = 429;
-
-    private RateLimitRetry() {}
+    private final int TOO_MANY_REQUESTS = 429;
 
     /** {@link #onRateLimit(Supplier, int, Duration)} with up to 5 retries and a 2s × attempt back-off. */
-    public static Response onRateLimit(Supplier<Response> call) {
+    public Response onRateLimit(Supplier<Response> call) {
         return onRateLimit(call, 5, Duration.ofSeconds(2));
     }
 
@@ -44,12 +44,12 @@ public final class RateLimitRetry {
      *
      * @throws IllegalArgumentException if {@code maxRetries} is negative
      */
-    public static Response onRateLimit(Supplier<Response> call, int maxRetries, Duration baseDelay) {
+    public Response onRateLimit(Supplier<Response> call, int maxRetries, Duration baseDelay) {
         return onRateLimit(call, maxRetries, baseDelay, delay -> WaitUtils.sleepMillis(delay.toMillis()));
     }
 
     /** Test seam: lets tests record the waits instead of sleeping. */
-    static Response onRateLimit(Supplier<Response> call, int maxRetries, Duration baseDelay, Consumer<Duration> sleeper) {
+    Response onRateLimit(Supplier<Response> call, int maxRetries, Duration baseDelay, Consumer<Duration> sleeper) {
         if (maxRetries < 0) {
             throw new IllegalArgumentException("maxRetries must not be negative, was " + maxRetries);
         }
@@ -65,7 +65,7 @@ public final class RateLimitRetry {
     }
 
     /** The {@code Retry-After} header as a delay, if present in its delay-seconds form; the HTTP-date form is ignored in favor of the back-off. */
-    private static Optional<Duration> retryAfter(Response response) {
+    private Optional<Duration> retryAfter(Response response) {
         String header = response.getHeader("Retry-After");
         if (header == null) {
             return Optional.empty();

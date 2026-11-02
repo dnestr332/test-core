@@ -1,5 +1,6 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 
@@ -15,20 +16,19 @@ import java.util.function.Supplier;
  * integrate with that platform's own polling/failure reporting instead.
  */
 @Slf4j
-public final class WaitUtils {
+@UtilityClass
+public class WaitUtils {
 
-    private WaitUtils() {}
-
-    private static final long DEFAULT_TIMEOUT = 10;
-    private static final long DEFAULT_POLLING = 200;
+    private final long DEFAULT_TIMEOUT = 10;
+    private final long DEFAULT_POLLING = 200;
 
     /** {@link #waitUntil(BooleanSupplier, long, long, String)} with the default 10s timeout and 200ms polling interval. */
-    public static void waitUntil(BooleanSupplier condition) {
+    public void waitUntil(BooleanSupplier condition) {
         waitUntil(condition, DEFAULT_TIMEOUT, DEFAULT_POLLING, "Condition not met");
     }
 
     /** {@link #waitUntil(BooleanSupplier, long, long, String)} with the default 200ms polling interval. */
-    public static void waitUntil(BooleanSupplier condition, long seconds, String message) {
+    public void waitUntil(BooleanSupplier condition, long seconds, String message) {
         waitUntil(condition, seconds, DEFAULT_POLLING, message);
     }
 
@@ -40,7 +40,7 @@ public final class WaitUtils {
      *
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
-    public static void waitUntil(BooleanSupplier condition, long seconds, long pollingMillis, String message) {
+    public void waitUntil(BooleanSupplier condition, long seconds, long pollingMillis, String message) {
         Awaitility.await()
                 .pollInterval(Duration.ofMillis(pollingMillis))
                 .atMost(Duration.ofSeconds(seconds))
@@ -59,7 +59,7 @@ public final class WaitUtils {
      *
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
-    public static void waitUntilIgnoringExceptions(BooleanSupplier condition, long seconds, String message) {
+    public void waitUntilIgnoringExceptions(BooleanSupplier condition, long seconds, String message) {
         Awaitility.await()
                 .ignoreExceptions()
                 .pollInterval(Duration.ofMillis(DEFAULT_POLLING))
@@ -78,7 +78,7 @@ public final class WaitUtils {
      *
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
-    public static <T> T waitForValue(Supplier<T> supplier, Predicate<T> condition, long seconds, String message) {
+    public <T> T waitForValue(Supplier<T> supplier, Predicate<T> condition, long seconds, String message) {
         return Awaitility.await()
                 .ignoreExceptions()
                 .pollInterval(Duration.ofMillis(DEFAULT_POLLING))
@@ -93,7 +93,7 @@ public final class WaitUtils {
     }
 
     /** {@link #waitUntilOnCallerThread(BooleanSupplier, long, long, String)} with the default 200ms polling interval. */
-    public static void waitUntilOnCallerThread(BooleanSupplier condition, long seconds, String message) {
+    public void waitUntilOnCallerThread(BooleanSupplier condition, long seconds, String message) {
         waitUntilOnCallerThread(condition, seconds, DEFAULT_POLLING, message);
     }
 
@@ -104,7 +104,7 @@ public final class WaitUtils {
      *
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
-    public static void waitUntilOnCallerThread(BooleanSupplier condition, long seconds, long pollingMillis, String message) {
+    public void waitUntilOnCallerThread(BooleanSupplier condition, long seconds, long pollingMillis, String message) {
         Awaitility.await(message)
                 .pollInSameThread()
                 .pollInterval(Duration.ofMillis(pollingMillis))
@@ -117,18 +117,18 @@ public final class WaitUtils {
     }
 
     /** Blocks the current thread for {@code seconds}. Prefer polling ({@link #waitUntil}) over a fixed sleep wherever the condition being waited on can be expressed as one. */
-    public static void sleepSeconds(long seconds) {
+    public void sleepSeconds(long seconds) {
         sleepMillis(seconds * 1000);
     }
 
     /** {@link #sleepSeconds(long)} that logs a warning naming why, so a fixed sleep stands out in the run log. */
-    public static void sleepSeconds(long seconds, String reason) {
+    public void sleepSeconds(long seconds, String reason) {
         log.warn("Sleeping {}s: {}", seconds, reason);
         sleepSeconds(seconds);
     }
 
     /** Blocks the current thread for {@code millis}; if interrupted, re-sets the thread's interrupt flag and logs a warning rather than propagating {@link InterruptedException}. */
-    public static void sleepMillis(long millis) {
+    public void sleepMillis(long millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
@@ -137,7 +137,7 @@ public final class WaitUtils {
         }
     }
 
-    private static void logWaiting(String message) {
+    private void logWaiting(String message) {
         log.debug("Waiting: {}", message);
     }
 }

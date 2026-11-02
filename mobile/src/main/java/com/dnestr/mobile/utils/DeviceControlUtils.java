@@ -15,6 +15,7 @@ import io.appium.java_client.ios.IOSDriver;
 import io.appium.java_client.ios.IOSStartScreenRecordingOptions;
 import io.appium.java_client.remote.SupportsLocation;
 import io.appium.java_client.screenrecording.CanRecordScreen;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.ScreenOrientation;
@@ -38,15 +39,14 @@ import static com.dnestr.base.logs.LogStyles.*;
  * only has that platform in its name and throws {@link UnsupportedOperationException} on the other.
  */
 @Slf4j
+@UtilityClass
 public class DeviceControlUtils {
 
-    private static final List<String> UDID_CAPABILITIES = List.of("appium:udid", "udid", "appium:deviceUDID", "deviceUDID");
-
-    private DeviceControlUtils() {}
+    private final List<String> UDID_CAPABILITIES = List.of("appium:udid", "udid", "appium:deviceUDID", "deviceUDID");
 
     //region APP & ORIENTATION
     /** Terminates, activates, or restarts (terminate then activate) the app identified by {@code appId}, if {@code driver} supports app lifecycle control; otherwise does nothing. */
-    public static void controlApp(AppiumDriver driver, String appId, AppAction action) {
+    public void controlApp(AppiumDriver driver, String appId, AppAction action) {
         if (driver instanceof InteractsWithApps appDriver) {
             log.info("📱 Action: {} | App: {}", action, appId);
 
@@ -63,18 +63,18 @@ public class DeviceControlUtils {
     }
 
     /** Sends the app under test to the background for {@code duration}, then brings it back. */
-    public static void runAppInBackground(Duration duration, AppiumDriver driver) {
+    public void runAppInBackground(Duration duration, AppiumDriver driver) {
         ((InteractsWithApps) driver).runAppInBackground(duration);
     }
 
     /** Opens {@code url} in the app {@code appId} (Android package, iOS bundle id). */
-    public static void openDeepLink(String url, String appId, AppiumDriver driver) {
+    public void openDeepLink(String url, String appId, AppiumDriver driver) {
         String appKey = TestContext.isIos() ? "bundleId" : "package";
         driver.executeScript("mobile: deepLink", Map.of("url", url, appKey, appId));
     }
 
     /** Rotates the device via the platform-appropriate driver cast. Logs and swallows any failure (e.g. the device doesn't support rotation) rather than throwing. */
-    private static void setOrientation(AppiumDriver driver, ScreenOrientation orientation) {
+    private void setOrientation(AppiumDriver driver, ScreenOrientation orientation) {
         try {
             if (driver instanceof AndroidDriver) {
                 ((AndroidDriver) driver).rotate(orientation);
@@ -87,19 +87,19 @@ public class DeviceControlUtils {
     }
 
     /** Rotates the device to landscape. */
-    public static void setToLandscape(AppiumDriver driver) {
+    public void setToLandscape(AppiumDriver driver) {
         setOrientation(driver, ScreenOrientation.LANDSCAPE);
     }
 
     /** Rotates the device to portrait. */
-    public static void setToPortrait(AppiumDriver driver) {
+    public void setToPortrait(AppiumDriver driver) {
         setOrientation(driver, ScreenOrientation.PORTRAIT);
     }
     //endregion
 
     //region KEYS & DEVICE STATE
     /** Presses the Home button: a key event on Android, the hardware button on iOS. */
-    public static void pressHome(AppiumDriver driver) {
+    public void pressHome(AppiumDriver driver) {
         if (TestContext.isIos()) {
             driver.executeScript("mobile: pressButton", Map.of("name", "home"));
         } else {
@@ -108,39 +108,39 @@ public class DeviceControlUtils {
     }
 
     /** Presses {@code key} as a key event. */
-    public static void pressAndroidKey(AndroidKey key, AppiumDriver driver) {
+    public void pressAndroidKey(AndroidKey key, AppiumDriver driver) {
         PlatformGuards.requireAndroid("key events");
         driver.executeScript("mobile: pressKey", Map.of("keycode", key.getCode()));
     }
 
     /** Presses Android's Back key. */
-    public static void pressAndroidBack(AppiumDriver driver) {
+    public void pressAndroidBack(AppiumDriver driver) {
         pressAndroidKey(AndroidKey.BACK, driver);
     }
 
     /** Locks the screen. */
-    public static void lockDevice(AppiumDriver driver) {
+    public void lockDevice(AppiumDriver driver) {
         ((LocksDevice) driver).lockDevice();
     }
 
     /** Unlocks the screen. */
-    public static void unlockDevice(AppiumDriver driver) {
+    public void unlockDevice(AppiumDriver driver) {
         ((LocksDevice) driver).unlockDevice();
     }
 
     /** Turns Wi-Fi and mobile data on or off. */
-    public static void setAndroidConnectivity(boolean wifi, boolean data, AppiumDriver driver) {
+    public void setAndroidConnectivity(boolean wifi, boolean data, AppiumDriver driver) {
         PlatformGuards.requireAndroid("connectivity");
         driver.executeScript("mobile: setConnectivity", Map.of("wifi", wifi, "data", data));
     }
 
     /** Sets the device's reported GPS position. */
-    public static void setDeviceLocation(double latitude, double longitude, AppiumDriver driver) {
+    public void setDeviceLocation(double latitude, double longitude, AppiumDriver driver) {
         ((SupportsLocation) driver).setLocation(new Location(latitude, longitude));
     }
 
     /** The clipboard's plain-text content. */
-    public static String getClipboardText(AppiumDriver driver) {
+    public String getClipboardText(AppiumDriver driver) {
         return ((HasClipboard) driver).getClipboardText();
     }
 
@@ -150,7 +150,7 @@ public class DeviceControlUtils {
      *
      * @throws IllegalStateException if none is found
      */
-    public static String getUdid(AppiumDriver driver) {
+    public String getUdid(AppiumDriver driver) {
         for (String key : UDID_CAPABILITIES) {
             Object udid = driver.getCapabilities().getCapability(key);
             if (udid != null && !String.valueOf(udid).isBlank()) {
@@ -170,7 +170,7 @@ public class DeviceControlUtils {
     //region NOTIFICATIONS
     /** Title and text of every notification in the shade, one trimmed string each. */
     @SuppressWarnings("unchecked")
-    public static List<String> getAndroidNotifications(AppiumDriver driver) {
+    public List<String> getAndroidNotifications(AppiumDriver driver) {
         PlatformGuards.requireAndroid("notifications");
         var result = (Map<String, Object>) driver.executeScript("mobile: getNotifications", Map.of());
         assert result != null;
@@ -187,7 +187,7 @@ public class DeviceControlUtils {
     }
 
     /** Pulls down the notification shade. */
-    public static void openAndroidNotifications(AppiumDriver driver) {
+    public void openAndroidNotifications(AppiumDriver driver) {
         PlatformGuards.requireAndroid("the notification shade");
         driver.executeScript("mobile: openNotifications", Map.of());
     }
@@ -196,7 +196,7 @@ public class DeviceControlUtils {
      * Pulls Notification Center down with a swipe from the top edge's left quarter; on a phone with a notch the right
      * side opens Control Center instead.
      */
-    public static void openIosNotificationCenter(AppiumDriver driver) {
+    public void openIosNotificationCenter(AppiumDriver driver) {
         PlatformGuards.requireIos("Notification Center");
         Dimension size = driver.manage().window().getSize();
         int x = size.getWidth() / 4;
@@ -213,7 +213,7 @@ public class DeviceControlUtils {
     }
 
     /** Turns heads-up (banner) notifications on or off on the device with {@code udid}, through adb. */
-    public static void setAndroidHeadsUpNotifications(String udid, SwitchState state) {
+    public void setAndroidHeadsUpNotifications(String udid, SwitchState state) {
         String value = String.valueOf(state.getValue());
         AdbUtils.runAndroidShell(udid, "settings", "put", "global", "heads_up_notifications_enabled", value);
     }
@@ -225,7 +225,7 @@ public class DeviceControlUtils {
      *
      * @throws IllegalStateException if the image cannot be read
      */
-    public static void injectAndroidEmulatorCameraImage(Path image, AppiumDriver driver) {
+    public void injectAndroidEmulatorCameraImage(Path image, AppiumDriver driver) {
         PlatformGuards.requireAndroid("camera image injection");
         try {
             String payload = Base64.getEncoder().encodeToString(Files.readAllBytes(image));
@@ -236,7 +236,7 @@ public class DeviceControlUtils {
     }
 
     /** Starts recording the screen, for at most {@code timeLimit}. */
-    public static void startScreenRecording(Duration timeLimit, AppiumDriver driver) {
+    public void startScreenRecording(Duration timeLimit, AppiumDriver driver) {
         CanRecordScreen screen = (CanRecordScreen) driver;
         if (TestContext.isAndroid()) {
             screen.startRecordingScreen(new AndroidStartScreenRecordingOptions().withTimeLimit(timeLimit));
@@ -251,7 +251,7 @@ public class DeviceControlUtils {
      *
      * @throws IllegalStateException if the file cannot be written
      */
-    public static Path stopScreenRecording(Path file, AppiumDriver driver) {
+    public Path stopScreenRecording(Path file, AppiumDriver driver) {
         String video = ((CanRecordScreen) driver).stopRecordingScreen();
         try {
             Path directory = file.toAbsolutePath().getParent();

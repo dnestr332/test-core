@@ -16,7 +16,7 @@ This repository is a Maven multi-module project:
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.4`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.5`):
 
 ```xml
 <repositories>
@@ -30,7 +30,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332.test-core</groupId>
         <artifactId>base</artifactId>
-        <version>4.0.4</version>
+        <version>4.0.5</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -61,6 +61,13 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 4.0.5
+
+## Changes
+
+### Base Core / Mobile Core
+- Static-only helper classes use Lombok's `@UtilityClass` instead of a hand-written private constructor, `final` and `static`. The compiled API is unchanged: the classes are still final, with static members, and cannot be instantiated
 
 # 4.0.4
 

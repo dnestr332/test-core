@@ -1,5 +1,7 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.lang.reflect.Field;
 import java.util.Map;
 
@@ -11,9 +13,8 @@ import java.util.Map;
  * from elsewhere in {@code test-core} itself (only exercised by its own test); available for a
  * consuming app's config loading to use.
  */
-public final class OverrideUtils {
-
-    private OverrideUtils() {}
+@UtilityClass
+public class OverrideUtils {
 
     /**
      * For each entry in {@code overrides}, reflectively sets the declared field of that name on
@@ -22,7 +23,7 @@ public final class OverrideUtils {
      * @throws IllegalArgumentException if a field doesn't exist, isn't accessible, has an
      *                                   unsupported type, or the value can't be parsed as that type
      */
-    public static void apply(Object target, Map<String, String> overrides) {
+    public void apply(Object target, Map<String, String> overrides) {
         overrides.forEach((fieldName, value) -> {
             try {
                 Field field = target.getClass().getDeclaredField(fieldName);
@@ -36,7 +37,7 @@ public final class OverrideUtils {
         });
     }
 
-    private static Object getObject(String value, Field field) {
+    private Object getObject(String value, Field field) {
         Class<?> type = field.getType();
 
         if (type == Integer.class || type == int.class) return Integer.parseInt(value);

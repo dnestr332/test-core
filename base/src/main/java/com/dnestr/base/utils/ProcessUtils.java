@@ -1,5 +1,7 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -9,14 +11,13 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /** Runs a command-line tool (adb, xcrun) and returns what it printed. */
-public final class ProcessUtils {
+@UtilityClass
+public class ProcessUtils {
 
-    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(20);
-
-    private ProcessUtils() {}
+    private final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(20);
 
     /** {@link #run(Duration, String...)} with a 20 second timeout. */
-    public static List<String> run(String... command) {
+    public List<String> run(String... command) {
         return run(DEFAULT_TIMEOUT, command);
     }
 
@@ -28,7 +29,7 @@ public final class ProcessUtils {
      * @throws IllegalStateException if the tool cannot be started, does not finish within {@code timeout} (it is then
      *                               killed), or the thread is interrupted
      */
-    public static List<String> run(Duration timeout, String... command) {
+    public List<String> run(Duration timeout, String... command) {
         String commandLine = String.join(" ", command);
         Path output = null;
         try {
@@ -54,7 +55,7 @@ public final class ProcessUtils {
         }
     }
 
-    private static void deleteQuietly(Path file) {
+    private void deleteQuietly(Path file) {
         if (file == null) return;
         try {
             Files.deleteIfExists(file);

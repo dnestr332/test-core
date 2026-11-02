@@ -1,6 +1,7 @@
 package com.dnestr.mobile.context;
 
 import com.dnestr.base.utils.EnumUtils;
+import lombok.experimental.UtilityClass;
 
 /**
  * Thread-local holder for the current test thread's target {@link MobilePlatform} and CI/local
@@ -8,11 +9,10 @@ import com.dnestr.base.utils.EnumUtils;
  * {@code MobileValidationUtils}, {@code AppInteractionUtils}, {@code DeviceControlUtils}) to branch platform-specific behavior
  * without threading a platform parameter through every call.
  */
-public final class TestContext {
+@UtilityClass
+public class TestContext {
 
-    private static final ThreadLocal<MobilePlatform> PLATFORM = new ThreadLocal<>();
-
-    private TestContext() {}
+    private final ThreadLocal<MobilePlatform> PLATFORM = new ThreadLocal<>();
 
     /**
      * Returns the current thread's {@link MobilePlatform}, resolving and caching it on first call
@@ -23,7 +23,7 @@ public final class TestContext {
      * @throws IllegalStateException if the {@code platform} system property isn't set, or its
      *                                (prefix of the) value doesn't match a {@link MobilePlatform} constant
      */
-    public static MobilePlatform getPlatform() {
+    public MobilePlatform getPlatform() {
         MobilePlatform current = PLATFORM.get();
         if (current == null) {
             String raw = System.getProperty("platform");
@@ -39,22 +39,22 @@ public final class TestContext {
     }
 
     /** Clears the current thread's cached platform, so the next {@link #getPlatform()} call re-resolves it from the system property. */
-    public static void clearPlatform() {
+    public void clearPlatform() {
         PLATFORM.remove();
     }
 
     /** Whether the {@code CI} environment variable is set to {@code "true"} (case-insensitive). */
-    public static boolean isCi() {
+    public boolean isCi() {
         return "true".equalsIgnoreCase(System.getenv("CI"));
     }
 
     /** Whether the current thread's platform ({@link #getPlatform()}) is {@link MobilePlatform#ANDROID}. */
-    public static boolean isAndroid() {
+    public boolean isAndroid() {
         return getPlatform() == MobilePlatform.ANDROID;
     }
 
     /** Whether the current thread's platform ({@link #getPlatform()}) is {@link MobilePlatform#IOS}. */
-    public static boolean isIos() {
+    public boolean isIos() {
         return getPlatform() == MobilePlatform.IOS;
     }
 }

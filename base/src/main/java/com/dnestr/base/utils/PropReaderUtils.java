@@ -1,12 +1,13 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.InputStream;
 import java.util.Properties;
 
 /** Loads a {@code .properties} file from the classpath and resolves individual keys with system-property/env-var override precedence. */
-public final class PropReaderUtils {
-
-    private PropReaderUtils() {}
+@UtilityClass
+public class PropReaderUtils {
 
     /**
      * Loads the classpath resource at {@code filePath} (via the current thread's context class
@@ -15,7 +16,7 @@ public final class PropReaderUtils {
      * @throws RuntimeException wrapping an {@link IllegalStateException} if the resource doesn't
      *                          exist, or any other error encountered while reading it
      */
-    public static Properties load(String filePath) {
+    public Properties load(String filePath) {
         try (InputStream is = Thread.currentThread()
                 .getContextClassLoader()
                 .getResourceAsStream(filePath)) {
@@ -40,7 +41,7 @@ public final class PropReaderUtils {
      * the next source. Lets a value baked into a checked-in properties file be overridden per-run
      * without editing the file.
      */
-    public static String getProperty(Properties props, String key) {
+    public String getProperty(Properties props, String key) {
         String systemValue = System.getProperty(key);
         if (systemValue != null && !systemValue.isBlank()) return systemValue;
 

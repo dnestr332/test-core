@@ -1,5 +1,7 @@
 package com.dnestr.base.utils;
 
+import lombok.experimental.UtilityClass;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -16,11 +18,10 @@ import java.util.Optional;
  * (which may contain commas and {@code ""}-escaped quotes) and a leading UTF-8 BOM, but not a
  * quoted cell spanning several lines, nor other separators.
  */
-public final class CsvReaderUtils {
+@UtilityClass
+public class CsvReaderUtils {
 
-    private static final char BOM = '﻿';
-
-    private CsvReaderUtils() {}
+    private final char BOM = '﻿';
 
     /**
      * Every non-blank line of the UTF-8 {@code file} as its cells, the header row first. Cells are
@@ -28,7 +29,7 @@ public final class CsvReaderUtils {
      *
      * @throws UncheckedIOException if the file can't be read
      */
-    public static List<List<String>> readRows(Path file) {
+    public List<List<String>> readRows(Path file) {
         try (BufferedReader reader = Files.newBufferedReader(file)) {
             return reader.lines()
                     .map(line -> !line.isEmpty() && line.charAt(0) == BOM ? line.substring(1) : line)
@@ -48,7 +49,7 @@ public final class CsvReaderUtils {
      * @param rows rows as returned by {@link #readRows}, the header row first
      * @throws IllegalArgumentException if the header row lacks {@code keyColumn} or {@code column}
      */
-    public static Optional<String> cell(List<List<String>> rows, String keyColumn, String key, String column) {
+    public Optional<String> cell(List<List<String>> rows, String keyColumn, String key, String column) {
         if (rows.isEmpty()) {
             return Optional.empty();
         }
@@ -65,7 +66,7 @@ public final class CsvReaderUtils {
     }
 
     /** One CSV line's cells; a quoted cell may hold commas and doubled quotes, never a line break here. */
-    private static List<String> cells(String line) {
+    private List<String> cells(String line) {
         List<String> cells = new ArrayList<>();
         StringBuilder cell = new StringBuilder();
         boolean quoted = false;

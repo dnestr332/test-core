@@ -1,5 +1,6 @@
 package com.dnestr.base.assertions;
 
+import lombok.experimental.UtilityClass;
 import org.assertj.core.api.Assertions;
 
 /**
@@ -10,33 +11,32 @@ import org.assertj.core.api.Assertions;
  * auto-retrying element checks in web tests, use Playwright's own
  * {@code PlaywrightAssertions.assertThat(locator)} directly.
  */
-public final class Hardly {
-
-    private Hardly() {}
+@UtilityClass
+public class Hardly {
 
     /** Asserts {@code condition} is {@code true}; {@code context} is prefixed to the failure message. */
-    public static void isTrue(boolean condition, String context) {
+    public void isTrue(boolean condition, String context) {
         Assertions.assertThat(condition)
                 .as("%s | Condition: <%s> should be true: ", context, condition)
                 .isTrue();
     }
 
     /** Asserts {@code condition} is {@code false}; {@code context} is prefixed to the failure message. */
-    public static void isFalse(boolean condition, String context) {
+    public void isFalse(boolean condition, String context) {
         Assertions.assertThat(condition)
                 .as("%s | Condition: <%s> should be false", context, condition)
                 .isFalse();
     }
 
     /** Asserts {@code actual} equals {@code expected}; {@code context} is prefixed to the failure message. */
-    public static <T> void isEqual(T actual, T expected, String context) {
+    public <T> void isEqual(T actual, T expected, String context) {
         Assertions.assertThat(actual)
                 .as("%s | The actual: <%s> is equal to: <%s>", context, actual, expected)
                 .isEqualTo(expected);
     }
 
     /** Fails the test immediately with {@code errorMessage}, with no condition to evaluate. */
-    public static void fail(String errorMessage) {
+    public void fail(String errorMessage) {
         Assertions.fail(errorMessage);
     }
 }
