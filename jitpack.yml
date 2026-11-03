@@ -1,5 +1,11 @@
 jdk:
   - openjdk21
 
+# JitPack's image ships a Maven older than 3.6.3, which maven-compiler-plugin 3.16.0 refuses to run on.
+before_install:
+  - sdk install maven 3.9.9
+  - sdk use maven 3.9.9
+
 install:
+  - mvn -v
   - mvn clean install
