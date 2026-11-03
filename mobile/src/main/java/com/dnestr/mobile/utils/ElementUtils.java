@@ -1,5 +1,13 @@
 package com.dnestr.mobile.utils;
 
+import io.appium.java_client.AppiumDriver;
+import org.w3c.dom.NodeList;
+import org.w3c.dom.Element;
+
+import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayInputStream;
+import javax.xml.parsers.DocumentBuilderFactory;
 import com.dnestr.mobile.context.TestContext;
 import io.appium.java_client.remote.AppiumWebElement;
 import lombok.experimental.UtilityClass;
@@ -10,14 +18,14 @@ import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.RemoteWebElement;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-/** Element read/write helpers that account for Android/iOS differences in how a value or text is actually exposed on a {@link WebElement}. */
+/**
+ * Reading and writing elements, and the texts the whole screen shows, accounting for how Android and iOS expose a
+ * value or text differently.
+ */
 @UtilityClass
-public class MobileElementUtils {
+public class ElementUtils {
 
     /** Clicks the element, clears any existing value, then types {@code value} — the standard "replace a field's content" sequence. */
     public void updateValue(WebElement element, String value) {
@@ -53,7 +61,7 @@ public class MobileElementUtils {
     /** {@link #getActualText} applied to every element in {@code target}, in order. */
     public List<String> getListOfText(List<WebElement> target) {
         return target.stream()
-                .map(MobileElementUtils::getActualText)
+                .map(ElementUtils::getActualText)
                 .map(String::trim)
                 .collect(Collectors.toList());
     }
@@ -111,4 +119,33 @@ public class MobileElementUtils {
         return elements.stream()
                 .min(Comparator.comparingInt(element -> Math.abs(centerOf(element).getY() - centerY)));
     }
+
+    //region SCREEN CONTENT
+    /**
+     * Every text in the current page source, in document order and without repeats: Android's {@code text}
+     * attributes, iOS's {@code label} and {@code value}. Covers screens of other apps (a dialer, a browser) too.
+     */
+    public List<String> getPageSourceTexts(AppiumDriver driver) {
+        List<String> attributes = TestContext.isIos() ? List.of("label", "value") : List.of("text");
+        Set<String> texts = new LinkedHashSet<>();
+        try {
+            var factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            var document = factory.newDocumentBuilder()
+                    .parse(new ByteArrayInputStream(Objects.
+                            requireNonNull(driver.getPageSource()).getBytes(StandardCharsets.UTF_8)));
+            NodeList nodes = document.getElementsByTagName("*");
+            for (int i = 0; i < nodes.getLength(); i++) {
+                Element node = (Element) nodes.item(i);
+                for (String attribute : attributes) {
+                    String text = node.getAttribute(attribute).trim();
+                    if (!text.isEmpty()) texts.add(text);
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not read the page source", e);
+        }
+        return new ArrayList<>(texts);
+    }
+    //endregion
 }

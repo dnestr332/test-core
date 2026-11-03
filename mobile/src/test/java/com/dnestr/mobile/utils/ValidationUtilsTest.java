@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class MobileValidationUtilsTest {
+class ValidationUtilsTest {
 
     @Mock
     private WebElement element;
@@ -37,7 +37,7 @@ class MobileValidationUtilsTest {
         System.setProperty("platform", "IOS");
         when(element.getAttribute("enabled")).thenReturn("true");
 
-        assertThat(MobileValidationUtils.isButtonEnabled(element)).isTrue();
+        assertThat(ValidationUtils.isButtonEnabled(element)).isTrue();
     }
 
     @Test
@@ -45,7 +45,7 @@ class MobileValidationUtilsTest {
         System.setProperty("platform", "IOS");
         when(element.getAttribute("enabled")).thenReturn("false");
 
-        assertThat(MobileValidationUtils.isButtonEnabled(element)).isFalse();
+        assertThat(ValidationUtils.isButtonEnabled(element)).isFalse();
     }
 
     @Test
@@ -54,7 +54,7 @@ class MobileValidationUtilsTest {
         when(element.getAttribute("enabled")).thenReturn("true");
         when(element.getAttribute("clickable")).thenReturn("false");
 
-        assertThat(MobileValidationUtils.isButtonEnabled(element)).isFalse();
+        assertThat(ValidationUtils.isButtonEnabled(element)).isFalse();
     }
 
     @Test
@@ -63,7 +63,7 @@ class MobileValidationUtilsTest {
         when(element.getAttribute("enabled")).thenReturn("true");
         when(element.getAttribute("clickable")).thenReturn("true");
 
-        assertThat(MobileValidationUtils.isButtonEnabled(element)).isTrue();
+        assertThat(ValidationUtils.isButtonEnabled(element)).isTrue();
     }
 
     @Test
@@ -71,7 +71,7 @@ class MobileValidationUtilsTest {
         System.setProperty("platform", "ANDROID");
         when(element.getAttribute("enabled")).thenThrow(new WebDriverException("session gone"));
 
-        assertThat(MobileValidationUtils.isButtonEnabled(element)).isFalse();
+        assertThat(ValidationUtils.isButtonEnabled(element)).isFalse();
     }
 
     @Test
@@ -79,14 +79,14 @@ class MobileValidationUtilsTest {
         byte[] red = solidColorPng(Color.RED);
         byte[] blue = solidColorPng(Color.BLUE);
 
-        assertThat(MobileValidationUtils.areImagesDifferent(red, blue, 0.01)).isTrue();
+        assertThat(ValidationUtils.areImagesDifferent(red, blue, 0.01)).isTrue();
     }
 
     @Test
     void areImagesDifferentFalseForIdenticalImages() throws IOException {
         byte[] green = solidColorPng(Color.GREEN);
 
-        assertThat(MobileValidationUtils.areImagesDifferent(green, green, 0.01)).isFalse();
+        assertThat(ValidationUtils.areImagesDifferent(green, green, 0.01)).isFalse();
     }
 
     @Test
@@ -94,14 +94,14 @@ class MobileValidationUtilsTest {
         byte[] a = solidColorPng(new Color(100, 100, 100));
         byte[] b = solidColorPng(new Color(101, 100, 100));
 
-        assertThat(MobileValidationUtils.areImagesDifferent(a, b, 0.5)).isFalse();
+        assertThat(ValidationUtils.areImagesDifferent(a, b, 0.5)).isFalse();
     }
 
     @Test
     void areImagesDifferentFalseOnUnreadableImageBytes() {
         byte[] garbage = new byte[]{1, 2, 3, 4};
 
-        assertThat(MobileValidationUtils.areImagesDifferent(garbage, garbage, 0.01)).isFalse();
+        assertThat(ValidationUtils.areImagesDifferent(garbage, garbage, 0.01)).isFalse();
     }
 
     private static byte[] solidColorPng(Color color) throws IOException {
@@ -122,7 +122,7 @@ class MobileValidationUtilsTest {
         WebElement box = mock(WebElement.class);
         when(box.getAttribute("checked")).thenReturn("true");
 
-        assertThat(MobileValidationUtils.isChecked(box)).isTrue();
+        assertThat(ValidationUtils.isChecked(box)).isTrue();
     }
 
     @Test
@@ -133,8 +133,8 @@ class MobileValidationUtilsTest {
         when(on.getAttribute("value")).thenReturn("1");
         when(off.getAttribute("value")).thenReturn("0");
 
-        assertThat(MobileValidationUtils.isChecked(on)).isTrue();
-        assertThat(MobileValidationUtils.isChecked(off)).isFalse();
+        assertThat(ValidationUtils.isChecked(on)).isTrue();
+        assertThat(ValidationUtils.isChecked(off)).isFalse();
     }
 
     @Test
@@ -143,7 +143,7 @@ class MobileValidationUtilsTest {
         WebElement box = mock(WebElement.class);
         when(box.getAttribute("checked")).thenThrow(new StaleElementReferenceException("gone"));
 
-        assertThat(MobileValidationUtils.isChecked(box)).isFalse();
+        assertThat(ValidationUtils.isChecked(box)).isFalse();
     }
 
     /** React Native puts a checkbox's role and its state together into the iOS value. */
@@ -155,7 +155,7 @@ class MobileValidationUtilsTest {
         when(on.getAttribute("value")).thenReturn("checkbox, checked");
         when(off.getAttribute("value")).thenReturn("checkbox, not checked");
 
-        assertThat(MobileValidationUtils.isChecked(on)).isTrue();
-        assertThat(MobileValidationUtils.isChecked(off)).isFalse();
+        assertThat(ValidationUtils.isChecked(on)).isTrue();
+        assertThat(ValidationUtils.isChecked(off)).isFalse();
     }
 }

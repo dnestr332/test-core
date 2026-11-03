@@ -1,5 +1,7 @@
 package com.dnestr.mobile.utils;
 
+import org.openqa.selenium.InvalidElementStateException;
+import com.dnestr.mobile.locators.SystemLocators;
 import com.dnestr.mobile.actions.AppAction;
 import com.dnestr.mobile.context.TestContext;
 import io.appium.java_client.AppiumBy;
@@ -13,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
@@ -55,7 +58,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DeviceControlUtilsTest {
+class DeviceUtilsTest {
 
     @Mock
     private AppiumDriver driver;
@@ -77,7 +80,7 @@ class DeviceControlUtilsTest {
     //region APP & ORIENTATION
     @Test
     void controlAppTerminateOnlyTerminates() {
-        DeviceControlUtils.controlApp(androidDriver, "com.app", AppAction.TERMINATE);
+        DeviceUtils.controlApp(androidDriver, "com.app", AppAction.TERMINATE);
 
         verify(androidDriver).terminateApp("com.app");
         verify(androidDriver, never()).activateApp(anyString());
@@ -85,7 +88,7 @@ class DeviceControlUtilsTest {
 
     @Test
     void controlAppActivateOnlyActivates() {
-        DeviceControlUtils.controlApp(androidDriver, "com.app", AppAction.ACTIVATE);
+        DeviceUtils.controlApp(androidDriver, "com.app", AppAction.ACTIVATE);
 
         verify(androidDriver).activateApp("com.app");
         verify(androidDriver, never()).terminateApp(anyString());
@@ -93,7 +96,7 @@ class DeviceControlUtilsTest {
 
     @Test
     void controlAppRestartTerminatesThenActivates() {
-        DeviceControlUtils.controlApp(androidDriver, "com.app", AppAction.RESTART);
+        DeviceUtils.controlApp(androidDriver, "com.app", AppAction.RESTART);
 
         InOrder order = inOrder(androidDriver);
         order.verify(androidDriver).terminateApp("com.app");
@@ -102,21 +105,21 @@ class DeviceControlUtilsTest {
 
     @Test
     void controlAppIgnoresDriverWithoutAppControl() {
-        DeviceControlUtils.controlApp(driver, "com.app", AppAction.RESTART);
+        DeviceUtils.controlApp(driver, "com.app", AppAction.RESTART);
 
         verifyNoInteractions(driver);
     }
 
     @Test
     void setToLandscapeRotatesAndroidDriver() {
-        DeviceControlUtils.setToLandscape(androidDriver);
+        DeviceUtils.setToLandscape(androidDriver);
 
         verify(androidDriver).rotate(ScreenOrientation.LANDSCAPE);
     }
 
     @Test
     void setToPortraitRotatesIosDriver() {
-        DeviceControlUtils.setToPortrait(iosDriver);
+        DeviceUtils.setToPortrait(iosDriver);
 
         verify(iosDriver).rotate(ScreenOrientation.PORTRAIT);
     }
@@ -125,11 +128,11 @@ class DeviceControlUtilsTest {
     void setOrientationSwallowsRotationFailure() {
         doThrow(new WebDriverException("not supported")).when(androidDriver).rotate(any(ScreenOrientation.class));
 
-        assertThatCode(() -> DeviceControlUtils.setToLandscape(androidDriver)).doesNotThrowAnyException();
+        assertThatCode(() -> DeviceUtils.setToLandscape(androidDriver)).doesNotThrowAnyException();
     }
     @Test
     void runAppInBackgroundSendsTheAppAwayForTheDuration() {
-        DeviceControlUtils.runAppInBackground(Duration.ofSeconds(5), androidDriver);
+        DeviceUtils.runAppInBackground(Duration.ofSeconds(5), androidDriver);
 
         verify(androidDriver).runAppInBackground(Duration.ofSeconds(5));
     }
@@ -138,7 +141,7 @@ class DeviceControlUtilsTest {
     void openDeepLinkNamesTheAndroidPackage() {
         System.setProperty("platform", "ANDROID");
 
-        DeviceControlUtils.openDeepLink("myle://documents", "com.app", driver);
+        DeviceUtils.openDeepLink("myle://documents", "com.app", driver);
 
         verify(driver).executeScript("mobile: deepLink", Map.of("url", "myle://documents", "package", "com.app"));
     }
@@ -147,7 +150,7 @@ class DeviceControlUtilsTest {
     void openDeepLinkNamesTheIosBundle() {
         System.setProperty("platform", "IOS");
 
-        DeviceControlUtils.openDeepLink("myle://documents", "com.app", driver);
+        DeviceUtils.openDeepLink("myle://documents", "com.app", driver);
 
         verify(driver).executeScript("mobile: deepLink", Map.of("url", "myle://documents", "bundleId", "com.app"));
     }
@@ -158,7 +161,7 @@ class DeviceControlUtilsTest {
     void pressHomeOnAndroidSendsTheHomeKeyEvent() {
         System.setProperty("platform", "ANDROID");
 
-        DeviceControlUtils.pressHome(driver);
+        DeviceUtils.pressHome(driver);
 
         verify(driver).executeScript("mobile: pressKey", Map.of("keycode", AndroidKey.HOME.getCode()));
     }
@@ -167,7 +170,7 @@ class DeviceControlUtilsTest {
     void pressHomeOnIosPressesTheHardwareButton() {
         System.setProperty("platform", "IOS");
 
-        DeviceControlUtils.pressHome(driver);
+        DeviceUtils.pressHome(driver);
 
         verify(driver).executeScript("mobile: pressButton", Map.of("name", "home"));
     }
@@ -176,7 +179,7 @@ class DeviceControlUtilsTest {
     void pressAndroidBackSendsKeycodeFour() {
         System.setProperty("platform", "ANDROID");
 
-        DeviceControlUtils.pressAndroidBack(driver);
+        DeviceUtils.pressAndroidBack(driver);
 
         verify(driver).executeScript("mobile: pressKey", Map.of("keycode", 4));
     }
@@ -185,23 +188,23 @@ class DeviceControlUtilsTest {
     void androidOnlyCommandsRefuseIos() {
         System.setProperty("platform", "IOS");
 
-        assertThatThrownBy(() -> DeviceControlUtils.pressAndroidKey(AndroidKey.BACK, driver))
+        assertThatThrownBy(() -> DeviceUtils.pressAndroidKey(AndroidKey.BACK, driver))
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> DeviceControlUtils.setAndroidConnectivity(false, false, driver))
+        assertThatThrownBy(() -> DeviceUtils.setAndroidConnectivity(false, false, driver))
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> DeviceControlUtils.getAndroidNotifications(driver))
+        assertThatThrownBy(() -> DeviceUtils.getAndroidNotifications(driver))
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> DeviceControlUtils.openAndroidNotifications(driver))
+        assertThatThrownBy(() -> DeviceUtils.openAndroidNotifications(driver))
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> DeviceControlUtils.injectAndroidEmulatorCameraImage(Path.of("any.png"), driver))
+        assertThatThrownBy(() -> DeviceUtils.injectAndroidEmulatorCameraImage(Path.of("any.png"), driver))
                 .isInstanceOf(UnsupportedOperationException.class);
         verifyNoInteractions(driver);
     }
 
     @Test
     void lockAndUnlockUseTheDriversLockCommands() {
-        DeviceControlUtils.lockDevice(iosDriver);
-        DeviceControlUtils.unlockDevice(iosDriver);
+        DeviceUtils.lockDevice(iosDriver);
+        DeviceUtils.unlockDevice(iosDriver);
 
         InOrder order = inOrder(iosDriver);
         order.verify(iosDriver).lockDevice();
@@ -212,7 +215,7 @@ class DeviceControlUtilsTest {
     void setAndroidConnectivitySetsWifiAndDataSeparately() {
         System.setProperty("platform", "ANDROID");
 
-        DeviceControlUtils.setAndroidConnectivity(true, false, driver);
+        DeviceUtils.setAndroidConnectivity(true, false, driver);
 
         verify(driver).executeScript("mobile: setConnectivity", Map.of("wifi", true, "data", false));
     }
@@ -221,7 +224,7 @@ class DeviceControlUtilsTest {
     void setDeviceLocationSetsLatitudeAndLongitude() {
         ArgumentCaptor<Location> location = ArgumentCaptor.forClass(Location.class);
 
-        DeviceControlUtils.setDeviceLocation(40.6, -73.9, androidDriver);
+        DeviceUtils.setDeviceLocation(40.6, -73.9, androidDriver);
 
         verify(androidDriver).setLocation(location.capture());
         assertThat(location.getValue().getLatitude()).isEqualTo(40.6);
@@ -232,7 +235,7 @@ class DeviceControlUtilsTest {
     void getClipboardTextReadsThePlainTextClipboard() {
         when(iosDriver.getClipboardText()).thenReturn("3915 Flatlands Ave");
 
-        assertThat(DeviceControlUtils.getClipboardText(iosDriver)).isEqualTo("3915 Flatlands Ave");
+        assertThat(DeviceUtils.getClipboardText(iosDriver)).isEqualTo("3915 Flatlands Ave");
     }
 
     @Test
@@ -240,7 +243,7 @@ class DeviceControlUtilsTest {
         System.setProperty("platform", "ANDROID");
         when(driver.getCapabilities()).thenReturn(new MutableCapabilities(Map.of("appium:deviceUDID", "emulator-5554")));
 
-        assertThat(DeviceControlUtils.getUdid(driver)).isEqualTo("emulator-5554");
+        assertThat(DeviceUtils.getUdid(driver)).isEqualTo("emulator-5554");
     }
 
     @Test
@@ -248,7 +251,7 @@ class DeviceControlUtilsTest {
         System.setProperty("platform", "IOS");
         when(driver.getCapabilities()).thenReturn(new MutableCapabilities(Map.of("appium:udid", " ")));
 
-        assertThatThrownBy(() -> DeviceControlUtils.getUdid(driver))
+        assertThatThrownBy(() -> DeviceUtils.getUdid(driver))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("No udid on the session");
     }
@@ -264,7 +267,7 @@ class DeviceControlUtilsTest {
                 Map.of("notification", Map.of("text", "No title"))
         )));
 
-        assertThat(DeviceControlUtils.getAndroidNotifications(driver))
+        assertThat(DeviceUtils.getAndroidNotifications(driver))
                 .containsExactly("Documents Please review your documents", "No title");
     }
 
@@ -273,7 +276,7 @@ class DeviceControlUtilsTest {
         System.setProperty("platform", "IOS");
         stubScreenSize(driver, 400, 800);
 
-        DeviceControlUtils.openIosNotificationCenter(driver);
+        DeviceUtils.openIosNotificationCenter(driver);
 
         List<Map<String, Object>> actions = performedActions(driver);
         assertThat(actions).extracting(a -> a.get("type")).containsExactly("pointerMove", "pointerDown", "pointerMove", "pointerUp");
@@ -285,7 +288,7 @@ class DeviceControlUtilsTest {
     void openIosNotificationCenterRefusesAndroid() {
         System.setProperty("platform", "ANDROID");
 
-        assertThatThrownBy(() -> DeviceControlUtils.openIosNotificationCenter(driver))
+        assertThatThrownBy(() -> DeviceUtils.openIosNotificationCenter(driver))
                 .isInstanceOf(UnsupportedOperationException.class);
         verifyNoInteractions(driver);
     }
@@ -294,7 +297,7 @@ class DeviceControlUtilsTest {
     void openAndroidNotificationsPullsDownTheShade() {
         System.setProperty("platform", "ANDROID");
 
-        DeviceControlUtils.openAndroidNotifications(driver);
+        DeviceUtils.openAndroidNotifications(driver);
 
         verify(driver).executeScript("mobile: openNotifications", Map.of());
     }
@@ -306,7 +309,7 @@ class DeviceControlUtilsTest {
         System.setProperty("platform", "ANDROID");
         Path image = Files.write(dir.resolve("doc.png"), new byte[]{1, 2, 3});
 
-        DeviceControlUtils.injectAndroidEmulatorCameraImage(image, driver);
+        DeviceUtils.injectAndroidEmulatorCameraImage(image, driver);
 
         verify(driver).executeScript("mobile: injectEmulatorCameraImage", Map.of("payload", "AQID"));
     }
@@ -315,7 +318,7 @@ class DeviceControlUtilsTest {
     void injectAndroidEmulatorCameraImageReportsAMissingFile(@TempDir Path dir) {
         System.setProperty("platform", "ANDROID");
 
-        assertThatThrownBy(() -> DeviceControlUtils.injectAndroidEmulatorCameraImage(dir.resolve("missing.png"), driver))
+        assertThatThrownBy(() -> DeviceUtils.injectAndroidEmulatorCameraImage(dir.resolve("missing.png"), driver))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("missing.png");
         verifyNoInteractions(driver);
@@ -325,7 +328,7 @@ class DeviceControlUtilsTest {
     void stopScreenRecordingWritesTheDecodedVideo(@TempDir Path dir) throws Exception {
         when(iosDriver.stopRecordingScreen()).thenReturn(Base64.getMimeEncoder().encodeToString(new byte[]{9, 8, 7}));
 
-        Path saved = DeviceControlUtils.stopScreenRecording(dir.resolve("videos/run.mp4"), iosDriver);
+        Path saved = DeviceUtils.stopScreenRecording(dir.resolve("videos/run.mp4"), iosDriver);
 
         assertThat(Files.readAllBytes(saved)).containsExactly(9, 8, 7);
     }
@@ -334,7 +337,7 @@ class DeviceControlUtilsTest {
     void startScreenRecordingUsesThePlatformsOptions() {
         System.setProperty("platform", "ANDROID");
 
-        DeviceControlUtils.startScreenRecording(Duration.ofMinutes(5), androidDriver);
+        DeviceUtils.startScreenRecording(Duration.ofMinutes(5), androidDriver);
 
         verify(androidDriver).startRecordingScreen(any(AndroidStartScreenRecordingOptions.class));
     }
@@ -379,5 +382,137 @@ class DeviceControlUtilsTest {
         assertThat(sequences.getValue()).hasSize(1);
         Map<String, Object> encoded = sequences.getValue().iterator().next().encode();
         return (List<Map<String, Object>>) encoded.get("actions");
+    }
+
+    @Test
+    void getForegroundAppIdReadsTheActiveAppsBundleIdOnIos() {
+        System.setProperty("platform", "ios");
+        when(driver.executeScript("mobile: activeAppInfo")).thenReturn(Map.of("bundleId", "com.apple.mobilephone", "pid", 42));
+
+        assertThat(DeviceUtils.getForegroundAppId(driver)).isEqualTo("com.apple.mobilephone");
+    }
+
+    @Test
+    void getForegroundAppIdReadsTheResumedActivityOnAndroid() {
+        System.setProperty("platform", "android");
+        MutableCapabilities capabilities = new MutableCapabilities();
+        capabilities.setCapability("appium:udid", "emulator-5554");
+        when(driver.getCapabilities()).thenReturn(capabilities);
+        try (MockedStatic<AdbUtils> adb = mockStatic(AdbUtils.class)) {
+            adb.when(() -> AdbUtils.getAndroidForegroundPackage("emulator-5554")).thenReturn("com.google.android.dialer");
+
+            assertThat(DeviceUtils.getForegroundAppId(driver)).isEqualTo("com.google.android.dialer");
+        }
+    }
+
+    @Test
+    void hideKeyboardOnAndroidUsesNativeCommand() {
+        System.setProperty("platform", "ANDROID");
+        when(androidDriver.isKeyboardShown()).thenReturn(true);
+
+        DeviceUtils.hideKeyboard(androidDriver);
+
+        verify(androidDriver).hideKeyboard();
+        verify(androidDriver, never()).executeScript(anyString(), anyMap());
+    }
+
+    @Test
+    void hideKeyboardDoesNothingWhenNoKeyboardIsShown() {
+        System.setProperty("platform", "ANDROID");
+
+        DeviceUtils.hideKeyboard(androidDriver);
+
+        verify(androidDriver, never()).hideKeyboard();
+        verify(androidDriver, never()).executeScript(anyString(), anyMap());
+    }
+
+    /** Back would leave the screen whenever the "shown" keyboard was not really up, as on an emulator with a hardware keyboard. */
+    @Test
+    void hideKeyboardOnAndroidDoesNotPressBackWhenTheHideFails() {
+        System.setProperty("platform", "ANDROID");
+        when(androidDriver.isKeyboardShown()).thenReturn(true);
+        doThrow(new WebDriverException("Soft keyboard not present")).when(androidDriver).hideKeyboard();
+
+        assertThatCode(() -> DeviceUtils.hideKeyboard(androidDriver)).doesNotThrowAnyException();
+
+        verify(androidDriver, never()).executeScript(anyString(), anyMap());
+        verify(androidDriver, never()).perform(any());
+    }
+
+    @Test
+    void hideKeyboardOnIosFallsBackToTapNearTop() {
+        System.setProperty("platform", "IOS");
+        when(iosDriver.isKeyboardShown()).thenReturn(true);
+        doThrow(new WebDriverException("no keyboard")).when(iosDriver).hideKeyboard();
+        stubScreenSize(iosDriver, 1000, 2000);
+
+        DeviceUtils.hideKeyboard(iosDriver);
+
+        assertThat(firstMove(iosDriver)).containsEntry("x", 500).containsEntry("y", 200);
+    }
+
+    @Test
+    void hideKeyboardOnIosPressesTheKeyboardsReturnKeyWhenTheHideFails() {
+        System.setProperty("platform", "IOS");
+        when(iosDriver.isKeyboardShown()).thenReturn(true, false);
+        doThrow(new WebDriverException("Did not know how to dismiss the keyboard")).when(iosDriver).hideKeyboard();
+        when(iosDriver.findElements(SystemLocators.iosKeyboardDismissKey())).thenReturn(List.of(element));
+
+        DeviceUtils.hideKeyboard(iosDriver);
+
+        verify(element).click();
+        verify(iosDriver, never()).perform(any());
+    }
+
+    @Test
+    void hideKeyboardOnIosTapsNearTopWhenTheReturnKeyLeavesTheKeyboardUp() {
+        System.setProperty("platform", "IOS");
+        when(iosDriver.isKeyboardShown()).thenReturn(true);
+        doThrow(new WebDriverException("Did not know how to dismiss the keyboard")).when(iosDriver).hideKeyboard();
+        when(iosDriver.findElements(any(By.class))).thenReturn(List.of(element));
+        stubScreenSize(iosDriver, 1000, 2000);
+
+        DeviceUtils.hideKeyboard(iosDriver);
+
+        verify(element).click();
+        assertThat(firstMove(iosDriver)).containsEntry("x", 500).containsEntry("y", 200);
+    }
+
+    @Test
+    void hideKeyboardOnIosSwallowsFallbackFailure() {
+        System.setProperty("platform", "IOS");
+        when(iosDriver.isKeyboardShown()).thenReturn(true);
+        doThrow(new WebDriverException("no keyboard")).when(iosDriver).hideKeyboard();
+        when(iosDriver.manage()).thenThrow(new WebDriverException("boom"));
+
+        assertThatCode(() -> DeviceUtils.hideKeyboard(iosDriver)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void tapIosKeyboardDoneButtonTapsTheToolbarDone() {
+        System.setProperty("platform", "IOS");
+        when(driver.findElement(SystemLocators.iosKeyboardDoneButton())).thenReturn(element);
+
+        DeviceUtils.tapIosKeyboardDoneButton(driver);
+
+        verify(element).click();
+    }
+
+    @Test
+    void tapIosKeyboardDoneButtonRefusesAndroid() {
+        System.setProperty("platform", "ANDROID");
+
+        assertThatThrownBy(() -> DeviceUtils.tapIosKeyboardDoneButton(driver))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessageContaining("only available on iOS");
+        verifyNoInteractions(driver);
+    }
+
+    @Test
+    void typeIntoFocusedElementSendsTheKeysWithoutAnElement() {
+        DeviceUtils.typeIntoFocusedElement("123456", driver);
+
+        verify(driver).perform(sequences.capture());
+        assertThat(sequences.getValue().iterator().next().encode().toString()).contains("keyDown", "value=1", "value=6");
     }
 }

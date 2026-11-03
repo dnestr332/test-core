@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import io.appium.java_client.AppiumDriver;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
@@ -23,8 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class MobileElementUtilsTest {
+class ElementUtilsTest {
 
+    @Mock
+    private AppiumDriver driver;
     @Mock
     private WebElement element;
     @Mock
@@ -40,26 +43,26 @@ class MobileElementUtilsTest {
     void centerOfIsTheMiddleOfTheBoundingBox() {
         when(element.getRect()).thenReturn(rect(100, 200, 50, 80));
 
-        assertThat(MobileElementUtils.centerOf(element)).isEqualTo(new Point(125, 240));
+        assertThat(ElementUtils.centerOf(element)).isEqualTo(new Point(125, 240));
     }
 
     @Test
     void getIdReadsResourceIdOnAndroidAndNameOnIos() {
         System.setProperty("platform", "ANDROID");
         when(element.getAttribute("resource-id")).thenReturn("doc-row-ssn");
-        assertThat(MobileElementUtils.getId(element)).isEqualTo("doc-row-ssn");
+        assertThat(ElementUtils.getId(element)).isEqualTo("doc-row-ssn");
 
         TestContext.clearPlatform();
         System.setProperty("platform", "IOS");
         when(element.getAttribute("name")).thenReturn("doc-row-tlc");
-        assertThat(MobileElementUtils.getId(element)).isEqualTo("doc-row-tlc");
+        assertThat(ElementUtils.getId(element)).isEqualTo("doc-row-tlc");
     }
 
     @Test
     void getIdIsEmptyWhenTheElementHasNone() {
         System.setProperty("platform", "ANDROID");
 
-        assertThat(MobileElementUtils.getId(element)).isEmpty();
+        assertThat(ElementUtils.getId(element)).isEmpty();
     }
 
     @Test
@@ -67,12 +70,12 @@ class MobileElementUtilsTest {
         when(element.getRect()).thenReturn(rect(0, 100, 50, 40));
         when(other.getRect()).thenReturn(rect(0, 180, 50, 40));
 
-        assertThat(MobileElementUtils.closestToCenterY(List.of(element, other), rect(0, 100, 50, 200))).contains(other);
+        assertThat(ElementUtils.closestToCenterY(List.of(element, other), rect(0, 100, 50, 200))).contains(other);
     }
 
     @Test
     void closestToCenterYOfNoRowsIsEmpty() {
-        assertThat(MobileElementUtils.closestToCenterY(List.of(), rect(0, 0, 10, 10))).isEmpty();
+        assertThat(ElementUtils.closestToCenterY(List.of(), rect(0, 0, 10, 10))).isEmpty();
     }
 
     @Test
@@ -82,14 +85,14 @@ class MobileElementUtilsTest {
         when(element.findElements(price)).thenReturn(List.of(other));
         when(other.getText()).thenReturn(" $12.50 ");
 
-        assertThat(MobileElementUtils.childText(element, price)).isEqualTo("$12.50");
+        assertThat(ElementUtils.childText(element, price)).isEqualTo("$12.50");
     }
 
     @Test
     void childTextIsEmptyWhenNothingMatches() {
         when(element.findElements(By.id("price"))).thenReturn(List.of());
 
-        assertThat(MobileElementUtils.childText(element, By.id("price"))).isEmpty();
+        assertThat(ElementUtils.childText(element, By.id("price"))).isEmpty();
     }
 
     @Test
@@ -99,12 +102,12 @@ class MobileElementUtilsTest {
         when(other.getAttribute("value")).thenReturn(null);
         when(other.getAttribute("label")).thenReturn("Toyota Camry");
 
-        assertThat(MobileElementUtils.childText(element, By.id("car"))).isEqualTo("Toyota Camry");
+        assertThat(ElementUtils.childText(element, By.id("car"))).isEqualTo("Toyota Camry");
     }
 
     @Test
     void replaceValueByBackspaceDeletesThenTypes() {
-        MobileElementUtils.replaceValueByBackspace(element, 4, "15");
+        ElementUtils.replaceValueByBackspace(element, 4, "15");
 
         InOrder order = inOrder(element);
         order.verify(element).click();
@@ -124,14 +127,34 @@ class MobileElementUtilsTest {
         when(appium.getId()).thenReturn("appium-id");
         when(remote.getId()).thenReturn("remote-id");
 
-        assertThat(MobileElementUtils.referenceId(appium)).isEqualTo("appium-id");
-        assertThat(MobileElementUtils.referenceId(remote)).isEqualTo("remote-id");
+        assertThat(ElementUtils.referenceId(appium)).isEqualTo("appium-id");
+        assertThat(ElementUtils.referenceId(remote)).isEqualTo("remote-id");
     }
 
     @Test
     void referenceIdRefusesAnElementNotFromADriver() {
-        assertThatThrownBy(() -> MobileElementUtils.referenceId(element))
+        assertThatThrownBy(() -> ElementUtils.referenceId(element))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("is not a driver element");
+    }
+
+    @Test
+    void getPageSourceTextsOnAndroidReadsTextAttributesInOrderWithoutRepeats() {
+        System.setProperty("platform", "ANDROID");
+        when(driver.getPageSource()).thenReturn("""
+                <hierarchy><node text="Call" content-desc="x"><node text=" (212) 555-0100 "/><node text=""/>\
+                <node text="Call"/></node></hierarchy>""");
+
+        assertThat(ElementUtils.getPageSourceTexts(driver)).containsExactly("Call", "(212) 555-0100");
+    }
+
+    @Test
+    void getPageSourceTextsOnIosReadsLabelAndValue() {
+        System.setProperty("platform", "IOS");
+        when(driver.getPageSource()).thenReturn("""
+                <AppiumAUT><XCUIElementTypeApplication label="Phone"><XCUIElementTypeStaticText label="Mobile" value="2125550100"/>\
+                </XCUIElementTypeApplication></AppiumAUT>""");
+
+        assertThat(ElementUtils.getPageSourceTexts(driver)).containsExactly("Phone", "Mobile", "2125550100");
     }
 }

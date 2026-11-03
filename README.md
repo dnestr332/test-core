@@ -10,13 +10,13 @@ Multi-module test automation core providing base utilities and specialized frame
 
 This repository is a Maven multi-module project:
 
-- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API request spec (`BaseApiSpec`), scenario/failure context, logging (`BaseFailureCatcher`, `PrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
+- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API request spec (`BaseApiSpec`), scenario context, logging (`FailureCatcher`, `PrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
 - **`web`**: Web automation framework built on top of [Microsoft Playwright](https://playwright.dev/java/).
 - **`mobile`**: Mobile automation framework built on top of [Appium](https://appium.io/) and Selenium, supporting both Android and iOS.
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `4.0.5`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `5.0.0`):
 
 ```xml
 <repositories>
@@ -30,7 +30,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332.test-core</groupId>
         <artifactId>base</artifactId>
-        <version>4.0.5</version>
+        <version>5.0.0</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -61,6 +61,54 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 5.0.0
+
+## Breaking changes
+
+### Mobile Core
+- A screen nests its element enum, and each constant carries its locator. `ScreenElement` (`getLocator()`) replaces
+  `Clickable`, without its clickable flag: one locator, built however the suite likes (`TestIdLocators.byTestId`, an
+  id, an XPath). `DualLocatorElement` extends it for an app whose Android and iOS builds need different locators.
+  A constant whose locator needs logic overrides `getLocator()` itself
+- `BaseScreen`, `Screen`, `Closable`, `AppScreen` and `BaseScreenResolver` are gone: nothing resolves a screen
+  object before acting on one of its elements
+- `BaseActionFlow` and `BaseAssertionFlow` take only `ElementActions`. `tap`, `type`, `text`, `setChecked` and the
+  `verify*` checks take the element alone (`tap(element)`), and a failure names it as `EditProfileElement.PROFILE_SAVE_BUTTON`.
+  `verifyItemState` is `verifyButtonState`, as on the web module
+- `MobileElementUtils` -> `ElementUtils`, `MobileValidationUtils` -> `ValidationUtils`: the package already says mobile
+- `SimctlUtils` -> `XcrunUtils`: it runs `xcrun simctl` for a simulator and `xcrun devicectl` for a real iPhone
+- `AppInteractionUtils` is split by what its methods do: the gestures are `GestureUtils`; `hideKeyboard`,
+  `tapIosKeyboardDoneButton` and `typeIntoFocusedElement` move to `DeviceUtils`; `getPageSourceTexts` moves to
+  `ElementUtils`
+- `DeviceControlUtils` -> `DeviceUtils`, named like the other utils after what it works on
+
+### Base Core
+- Element actions log one line each once they end instead of a start line and an `OK` line:
+  `👉 click        0.10s  role=button[name="LOGIN"i]`. The locator prints once, without Playwright's `Locator@` and
+  `internal:` prefixes, and a mobile `By.id: x` reads `id=x`. A typed value is quoted, and masked when the locator
+  mentions a password. An action slower than 3 s logs at WARN, a failure at ERROR with the error's first line. The
+  logger is `ElementActions`
+- `PrettyPrinter`'s `start` / `ok` / `fail` are `done` / `failed`; a subclass implements `describe(locator)` instead of
+  `getLocatorType` / `getLocatorValue` / `extractLocatorFromMessage`
+- `BaseFailureCatcher` -> `FailureCatcher`, and the web and mobile ones (`FailureCatcher` in each module) ->
+  `WebFailureCatcher` / `MobileFailureCatcher`, named like `WebPrettyPrinter` / `MobilePrettyPrinter`
+- `TestFailureContext` is removed: nothing read the error it kept
+- `LogStyles` keeps the ANSI colours and the `ACTION` marker; the emoji, meme and `[OK]`-style constants are removed.
+  Log messages carry no emoji or colour codes, so the log level and the logback pattern do that job
+
+## Changes
+
+### Mobile Core
+- `BaseActionFlow.setChecked` ticks or unticks a box, tapping until it reads as wanted (a box can open ticked, and on
+  iOS a tap right after the screen opens can be dropped)
+- `TestContext.requireAndroid` / `requireIos` refuse a platform-only call on the other platform, naming it (were
+  `PlatformGuards`), for a consumer's own Android-only or iOS-only method
+- `AdbUtils.isAndroidAppInstalled` / `clearAndroidAppData`
+- `XcrunUtils.rebootIosSimulator` / `setIosSimulatorLocation` / `grantIosSimulatorPrivacy` / `revokeIosSimulatorPrivacy` /
+  `clearIosSimulatorAppData` (empties the data container and resets the keychain, so the app starts signed out)
+- `XcrunUtils.isIosDeviceAppInstalled`, for a real iPhone, through `xcrun devicectl` (simctl does not reach one)
+- `DeviceUtils.getForegroundAppId`, the package or bundle id of the app in front, on both platforms
 
 # 4.0.5
 

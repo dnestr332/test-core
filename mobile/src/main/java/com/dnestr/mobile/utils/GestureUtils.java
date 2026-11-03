@@ -2,12 +2,8 @@ package com.dnestr.mobile.utils;
 
 import com.dnestr.base.utils.WaitUtils;
 import com.dnestr.mobile.context.TestContext;
-import com.dnestr.mobile.locators.SystemLocators;
 import com.dnestr.mobile.locators.TestIdLocators;
 import io.appium.java_client.AppiumDriver;
-import io.appium.java_client.HasOnScreenKeyboard;
-import io.appium.java_client.android.AndroidDriver;
-import io.appium.java_client.ios.IOSDriver;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.By;
@@ -17,36 +13,26 @@ import org.openqa.selenium.Point;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.interactions.Pause;
 import org.openqa.selenium.interactions.PointerInput;
 import org.openqa.selenium.interactions.Sequence;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BooleanSupplier;
 
-import static com.dnestr.base.logs.LogStyles.*;
 
 /**
- * Actions inside the app under test that go below the element level: taps and gestures at coordinates or on an
- * element, swiping and scrolling, the keyboard, and reading what the screen shows. Control of the device and of the
- * app from outside it is in {@link DeviceControlUtils}. A method that works on one platform only has that platform in
- * its name and throws {@link UnsupportedOperationException} on the other.
+ * Touch gestures on the app under test: taps at coordinates or on an element, long press, double tap, drag, drawing,
+ * swiping and scrolling. The device, the app's lifecycle and the keyboard are in {@link DeviceUtils}; reading
+ * elements and the screen's texts is in {@link ElementUtils}. A method that works on one platform only has that
+ * platform in its name and throws {@link UnsupportedOperationException} on the other.
  */
 @Slf4j
 @UtilityClass
-public class AppInteractionUtils {
+public class GestureUtils {
 
     private final int MAX_REVEAL_DRAGS = 4;
     private final Duration DRAG_DURATION = Duration.ofMillis(500);
@@ -54,7 +40,7 @@ public class AppInteractionUtils {
     //region TAPS & GESTURES
     /** Performs a single tap at the given viewport coordinates via a synthetic touch pointer gesture. */
     public void tapByCoordinates(int x, int y, AppiumDriver driver) {
-        log.info("{} {} Tapping coordinates ({}, {})", INFO_SHORT, INFO, x, y);
+        log.info("Tapping coordinates ({}, {})", x, y);
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
         Sequence tap = new Sequence(finger, 0)
@@ -89,8 +75,8 @@ public class AppInteractionUtils {
 
     /** Taps the center of {@code element} twice, 150 ms apart, as one gesture. */
     public void doubleTap(WebElement element, AppiumDriver driver) {
-        Point center = MobileElementUtils.centerOf(element);
-        log.info("{} {} Double-tapping ({}, {})", INFO_SHORT, INFO, center.getX(), center.getY());
+        Point center = ElementUtils.centerOf(element);
+        log.info("Double-tapping ({}, {})", center.getX(), center.getY());
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
         Sequence taps = new Sequence(finger, 0)
@@ -106,8 +92,8 @@ public class AppInteractionUtils {
 
     /** Presses and holds the center of {@code element} for {@code hold} before releasing, via a synthetic touch pointer gesture — e.g. to open a context menu or start a drag. */
     public void longPress(WebElement element, Duration hold, AppiumDriver driver) {
-        Point center = MobileElementUtils.centerOf(element);
-        log.info("{} {} Long-pressing ({}, {}) for {} ms", INFO_SHORT, INFO, center.getX(), center.getY(), hold.toMillis());
+        Point center = ElementUtils.centerOf(element);
+        log.info("Long-pressing ({}, {}) for {} ms", center.getX(), center.getY(), hold.toMillis());
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
         Sequence press = new Sequence(finger, 0)
@@ -124,7 +110,7 @@ public class AppInteractionUtils {
      * reorderable list only picks a row up after the hold.
      */
     public void dragAndDrop(Point from, Point to, Duration hold, Duration move, AppiumDriver driver) {
-        log.info("{} {} Dragging ({}, {}) to ({}, {})", INFO_SHORT, INFO, from.getX(), from.getY(), to.getX(), to.getY());
+        log.info("Dragging ({}, {}) to ({}, {})", from.getX(), from.getY(), to.getX(), to.getY());
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
         Sequence drag = new Sequence(finger, 0)
@@ -149,7 +135,7 @@ public class AppInteractionUtils {
         if (strokes < 1) {
             throw new IllegalArgumentException("strokes must be at least 1, was " + strokes);
         }
-        log.info("{} {} Drawing {} strokes in {}", INFO_SHORT, INFO, strokes, box);
+        log.info("Drawing {} strokes in {}", strokes, box);
         int left = box.getX() + box.getWidth() / 8;
         int step = box.getWidth() * 3 / 4 / strokes;
         int top = box.getY() + box.getHeight() / 3;
@@ -178,7 +164,7 @@ public class AppInteractionUtils {
      * ({@code left=100, top=600, width=800, height=1000}, {@code percent=0.85}).
      */
     public void swipe(AppiumDriver driver, String direction) {
-        log.info("{} {} Swipe {} gesture", INFO_SHORT, INFO, direction);
+        log.info("Swipe {} gesture", direction);
 
         if (TestContext.isIos()) {
             driver.executeScript("mobile: swipe", Map.of("direction", "%s".formatted(direction)));
@@ -220,13 +206,13 @@ public class AppInteractionUtils {
 
     /**
      * Whether a swipe up moved the screen: compares screenshots taken before and after it with
-     * {@link MobileValidationUtils#areImagesDifferent} at {@code threshold}. The swipe stays done.
+     * {@link ValidationUtils#areImagesDifferent} at {@code threshold}. The swipe stays done.
      */
     public boolean isScrollableBySwipeUp(AppiumDriver driver, double threshold) {
         byte[] before = driver.getScreenshotAs(OutputType.BYTES);
         swipeUp(driver);
         byte[] after = driver.getScreenshotAs(OutputType.BYTES);
-        return MobileValidationUtils.areImagesDifferent(before, after, threshold);
+        return ValidationUtils.areImagesDifferent(before, after, threshold);
     }
 
     /**
@@ -239,7 +225,7 @@ public class AppInteractionUtils {
      * before giving up, so it is the fallback for an element above the current position.
      */
     public WebElement scrollIntoView(String id, AppiumDriver driver) {
-        log.info("{} {} Scrolling to '{}'", INFO_SHORT, INFO, id);
+        log.info("Scrolling to '{}'", id);
 
         if (TestContext.isIos()) {
             By target = TestIdLocators.iosByTestIdPredicate(id);
@@ -289,92 +275,6 @@ public class AppInteractionUtils {
                 WaitUtils.sleepSeconds(1);
             }
         }
-    }
-    //endregion
-
-    //region KEYBOARD
-    /**
-     * Hides the on-screen keyboard; does nothing when none is up. On iOS a failed hide presses the keyboard's own Return
-     * or Done key, then falls back to a tap near the top of the screen. On Android it is only logged: pressing Back instead leaves the screen whenever the keyboard
-     * was not really up, and an emulator with a hardware keyboard reports one shown while drawing none.
-     */
-    public void hideKeyboard(AppiumDriver driver) {
-        if (driver instanceof HasOnScreenKeyboard keyboard && !keyboard.isKeyboardShown()) return;
-        try {
-            if (TestContext.isAndroid()) {
-                ((AndroidDriver) driver).hideKeyboard();
-            } else {
-                ((IOSDriver) driver).hideKeyboard();
-            }
-        } catch (Exception e) {
-            if (TestContext.isAndroid()) {
-                log.warn("⚠ Failed to hide keyboard, leaving it: {}", e.getMessage());
-                return;
-            }
-            log.warn("⚠ Failed to hide keyboard, pressing its return key instead: {}", e.getMessage());
-            if (!pressIosKeyboardDismissKey(driver)) tapNearTopQuietly(driver);
-        }
-    }
-
-    /** WebDriverAgent cannot dismiss a keyboard whose only way out is its return key, such as React Native's default one. */
-    private boolean pressIosKeyboardDismissKey(AppiumDriver driver) {
-        try {
-            List<WebElement> keys = driver.findElements(SystemLocators.iosKeyboardDismissKey());
-            if (keys.isEmpty()) return false;
-            keys.getFirst().click();
-            return !((HasOnScreenKeyboard) driver).isKeyboardShown();
-        } catch (Exception e) {
-            log.warn("⚠ Failed to press the keyboard's return key, tapping near the top instead: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    private void tapNearTopQuietly(AppiumDriver driver) {
-        try {
-            Dimension size = driver.manage().window().getSize();
-            tapByCoordinates(size.getWidth() / 2, size.getHeight() / 10, driver);
-        } catch (Exception e) {
-            log.warn("⚠ Failed to hide keyboard by tapping: {}", e.getMessage());
-        }
-    }
-
-    /** Taps "Done" on the iOS keyboard's toolbar, which a number pad needs to close. */
-    public void tapIosKeyboardDoneButton(AppiumDriver driver) {
-        PlatformGuards.requireIos("the keyboard's Done button");
-        driver.findElement(SystemLocators.iosKeyboardDoneButton()).click();
-    }
-
-    /** Types {@code text} into whichever element has focus, for an input the UI tree leaves out (e.g. a 1x1 code field). */
-    public void typeIntoFocusedElement(String text, AppiumDriver driver) {
-        new Actions(driver).sendKeys(text).perform();
-    }
-    //endregion
-
-    //region SCREEN CONTENT
-    /**
-     * Every text in the current page source, in document order and without repeats: Android's {@code text}
-     * attributes, iOS's {@code label} and {@code value}. Covers screens of other apps (a dialer, a browser) too.
-     */
-    public List<String> getPageSourceTexts(AppiumDriver driver) {
-        List<String> attributes = TestContext.isIos() ? List.of("label", "value") : List.of("text");
-        Set<String> texts = new LinkedHashSet<>();
-        try {
-            var factory = DocumentBuilderFactory.newInstance();
-            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            var document = factory.newDocumentBuilder()
-                    .parse(new ByteArrayInputStream(driver.getPageSource().getBytes(StandardCharsets.UTF_8)));
-            NodeList nodes = document.getElementsByTagName("*");
-            for (int i = 0; i < nodes.getLength(); i++) {
-                Element node = (Element) nodes.item(i);
-                for (String attribute : attributes) {
-                    String text = node.getAttribute(attribute).trim();
-                    if (!text.isEmpty()) texts.add(text);
-                }
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException("Could not read the page source", e);
-        }
-        return new ArrayList<>(texts);
     }
     //endregion
 }

@@ -1,7 +1,6 @@
 package com.dnestr.web.actions;
 
-import com.dnestr.base.context.TestFailureContext;
-import com.dnestr.web.logs.FailureCatcher;
+import com.dnestr.web.logs.WebFailureCatcher;
 import com.dnestr.web.logs.WebPrettyPrinter;
 import com.microsoft.playwright.Keyboard;
 import com.microsoft.playwright.Locator;
@@ -10,7 +9,6 @@ import com.microsoft.playwright.Page.WaitForConditionOptions;
 import com.microsoft.playwright.Page.WaitForFunctionOptions;
 import com.microsoft.playwright.TimeoutError;
 import com.microsoft.playwright.options.WaitForSelectorState;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,12 +39,7 @@ class ElementActionsTest {
 
     @BeforeEach
     void setUp() {
-        actions = new ElementActions(page, new FailureCatcher(new WebPrettyPrinter()));
-    }
-
-    @AfterEach
-    void tearDown() {
-        TestFailureContext.clear();
+        actions = new ElementActions(page, new WebFailureCatcher(new WebPrettyPrinter()));
     }
 
     @Test
@@ -334,11 +327,10 @@ class ElementActionsTest {
     }
 
     @Test
-    void click_whenLocatorThrows_recordsErrorInTestFailureContextAndRethrows() {
+    void click_whenLocatorThrows_rethrowsTheSameError() {
         RuntimeException boom = new RuntimeException("boom");
         doThrow(boom).when(locator).click();
 
         assertThatThrownBy(() -> actions.click(locator)).isSameAs(boom);
-        assertThat(TestFailureContext.getError()).isSameAs(boom);
     }
 }

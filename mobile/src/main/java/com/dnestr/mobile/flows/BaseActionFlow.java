@@ -1,70 +1,41 @@
 package com.dnestr.mobile.flows;
 
 import com.dnestr.mobile.actions.ElementActions;
-import com.dnestr.mobile.screens.BaseScreen;
-import com.dnestr.mobile.screens.BaseScreenResolver;
-import com.dnestr.mobile.screens.Clickable;
-import com.dnestr.mobile.screens.AppScreen;
+import com.dnestr.mobile.screens.ScreenElement;
+import com.dnestr.mobile.utils.ValidationUtils;
+import lombok.RequiredArgsConstructor;
 
 /**
- * Base for flow classes that act on screens without callers resolving a {@link BaseScreen} themselves — mobile's
- * counterpart to the web module's {@code BaseActionFlow}. The public methods take a {@link AppScreen} constant,
- * looked up through the injected {@link BaseScreenResolver}; the {@code dynamic*} methods take a screen already in hand.
- * Subclasses add the multi-step sequences a scenario needs on top.
+ * The shared tap, type and text on a screen element, which reads its own locator. An app's flow extends it to add the
+ * sequences a scenario needs, or to override a tap or type that needs more than a click.
  */
+@RequiredArgsConstructor
 public abstract class BaseActionFlow {
 
+    private static final int CHECK_ATTEMPTS = 3;
+
     protected final ElementActions elementActions;
-    protected final BaseScreenResolver screenResolver;
 
-    protected BaseActionFlow(ElementActions elementActions, BaseScreenResolver screenResolver) {
-        this.elementActions = elementActions;
-        this.screenResolver = screenResolver;
+    public void tap(ScreenElement element) {
+        elementActions.click(element.getLocator());
     }
 
-    /** The {@link BaseScreen} that draws {@code screen}. */
-    protected BaseScreen resolve(AppScreen screen) {
-        return screenResolver.resolveScreen(screen);
+    /** Types {@code value} into {@code element}, replacing its content. */
+    public void type(ScreenElement element, String value) {
+        elementActions.type(element.getLocator(), value);
     }
 
-    /** Clicks {@code item} on {@code screen}; see {@link #dynamicTap}. */
-    public void tap(AppScreen screen, Clickable item) {
-        dynamicTap(resolve(screen), item);
-    }
-
-    /** Types {@code value} into {@code item} on {@code screen}, replacing its content. */
-    public void type(AppScreen screen, Clickable item, String value) {
-        dynamicType(resolve(screen), item, value);
-    }
-
-    /** The text of {@code item} on {@code screen}. */
-    public String text(AppScreen screen, Clickable item) {
-        return dynamicGetText(resolve(screen), item);
+    public String text(ScreenElement element) {
+        return elementActions.text(element.getLocator());
     }
 
     /**
-     * Resolves {@code item} on {@code screen} and clicks it.
-     *
-     * @throws IllegalStateException if {@code item.isClickable()} is {@code false} — checked before
-     *                                resolving or touching the driver at all
+     * Ticks or unticks a box. It can open ticked with a consent given earlier, and on iOS a tap right after the screen
+     * opens can be dropped, so it is tapped until it reads as wanted, at most three times.
      */
-    protected void dynamicTap(BaseScreen screen, Clickable item) {
-        if (!item.isClickable()) {
-            throw new IllegalStateException(
-                    "Item %s is not clickable on screen %s"
-                            .formatted(item, screen.getClass().getSimpleName())
-            );
+    public void setChecked(ScreenElement box, boolean checked) {
+        for (int tap = 0; tap < CHECK_ATTEMPTS && ValidationUtils.isChecked(elementActions.find(box.getLocator())) != checked; tap++) {
+            tap(box);
         }
-        elementActions.click(screen.resolve(item));
-    }
-
-    /** Resolves {@code item} on {@code screen} and types {@code value} into it. */
-    protected void dynamicType(BaseScreen screen, Clickable item, String value) {
-        elementActions.type(screen.resolve(item), value);
-    }
-
-    /** Resolves {@code item} on {@code screen} and returns its text. */
-    protected String dynamicGetText(BaseScreen screen, Clickable item) {
-        return elementActions.text(screen.resolve(item));
     }
 }

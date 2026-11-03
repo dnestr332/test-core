@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.Socket;
 
-import static com.dnestr.base.logs.LogStyles.*;
 
 /**
  * Manages a local Appium server process (as opposed to connecting to an already-running/remote
@@ -22,11 +21,11 @@ public class AppiumLocalServer {
     /** Starts a local Appium server on {@code port}, unless one is already listening there ({@link #isServerRunning}), in which case this is a no-op. */
     public void startLocalServer(int port) {
         if (isServerRunning(port)) {
-            log.info("{} Appium server already running on {}", INFO_SHORT, port);
+            log.info("Appium server already running on {}", port);
             return;
         }
 
-        log.info("{} Starting Appium server on {}…", INFO_SHORT, port);
+        log.info("Starting Appium server on {}…", port);
         service = AppiumDriverLocalService.buildService(
                 new AppiumServiceBuilder()
                         .withIPAddress("127.0.0.1")
@@ -36,15 +35,15 @@ public class AppiumLocalServer {
         service.clearOutPutStreams();
 
         service.start();
-        log.info("{} Appium server started on {}", OK_SHORT, port);
+        log.info("Appium server started on {}", port);
     }
 
     /** Stops the server started by {@link #startLocalServer}, if one is running; otherwise does nothing. */
     public void stopLocalServer() {
         if (service != null && service.isRunning()) {
-            log.info("{} Stopping Appium server…", INFO_SHORT);
+            log.info("Stopping Appium server…");
             service.stop();
-            log.info("{} Appium server stopped{}", OK_SHORT, RESET);
+            log.info("Appium server stopped");
         }
     }
 

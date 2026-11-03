@@ -2,10 +2,10 @@ package com.dnestr.mobile.actions;
 
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.base.actions.ElementAction;
-import com.dnestr.mobile.logs.FailureCatcher;
-import com.dnestr.mobile.utils.AppInteractionUtils;
-import com.dnestr.mobile.utils.MobileValidationUtils;
-import com.dnestr.mobile.utils.MobileElementUtils;
+import com.dnestr.mobile.logs.MobileFailureCatcher;
+import com.dnestr.mobile.utils.GestureUtils;
+import com.dnestr.mobile.utils.ValidationUtils;
+import com.dnestr.mobile.utils.ElementUtils;
 import com.dnestr.mobile.waits.DriverWait;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +22,8 @@ import static com.dnestr.mobile.actions.ActionStrategy.*;
  * counterpart to the web module's {@code ElementActions}, but considerably more defensive: native
  * mobile apps are more prone to elements that exist but don't respond to a standard click/read, so
  * most actions here have an explicit fallback path ({@link FallbackActions}) rather than only the
- * single {@code FailureCatcher}-wrapped happy path the web module has. Every action still routes
- * through {@link FailureCatcher} for logging/failure capture; used by composition, passed into
+ * single {@code MobileFailureCatcher}-wrapped happy path the web module has. Every action still routes
+ * through {@link MobileFailureCatcher} for logging/failure capture; used by composition, passed into
  * page objects, not extended.
  */
 @Slf4j
@@ -32,7 +32,7 @@ public class ElementActions {
 
     private final DriverWait driverWait;
     private final FallbackActions fallbackActions;
-    private final FailureCatcher failureCatcher;
+    private final MobileFailureCatcher failureCatcher;
 
     //region FIND ELEMENT
     /**
@@ -199,10 +199,17 @@ public class ElementActions {
      * keyboard is closing.
      */
     public boolean clickUntilVisible(By target, By expected, int attempts) {
-        for (int attempt = 0; attempt < attempts; attempt++) {
+        for (int attempt = 1; attempt <= attempts; attempt++) {
             click(target);
-            if (isQuickVisible(expected)) return true;
+            if (isQuickVisible(expected)) {
+                if (attempt > 1) log.info("{} showed after tap {}/{} on {}", expected, attempt, attempts, target);
+                return true;
+            }
+            if (attempt < attempts) {
+                log.warn("{} did not show after tap {}/{} on {}, tapping again", expected, attempt, attempts, target);
+            }
         }
+        log.warn("{} did not show after {} taps on {}", expected, attempts, target);
         return false;
     }
 
@@ -213,38 +220,43 @@ public class ElementActions {
     public boolean clickWhileVisible(By watched, By button, int maxClicks) {
         for (int clicks = 0; clicks < maxClicks; clicks++) {
             if (!isQuickVisible(watched)) return true;
+            log.info("{} still showing, tap {}/{} on {}", watched, clicks + 1, maxClicks, button);
             click(button);
         }
-        return !isQuickVisible(watched);
+        if (isQuickVisible(watched)) {
+            log.warn("{} still showing after {} taps on {}", watched, maxClicks, button);
+            return false;
+        }
+        return true;
     }
 
     /** Presses and holds the element's center for {@code hold}. */
     public void longPress(By locator, Duration hold) {
         failureCatcher.withFailureCapture(LONG_PRESS, locator, hold.toMillis() + " ms",
-                () -> AppInteractionUtils.longPress(driverWait.visible(locator), hold, fallbackActions.driver())
+                () -> GestureUtils.longPress(driverWait.visible(locator), hold, fallbackActions.driver())
         );
     }
 
     /** Taps the element's center twice as one gesture, so both taps land before the app can react to the first. */
     public void doubleTap(By locator) {
         failureCatcher.withFailureCapture(DOUBLE_TAP, locator,
-                () -> AppInteractionUtils.doubleTap(driverWait.visible(locator), fallbackActions.driver())
+                () -> GestureUtils.doubleTap(driverWait.visible(locator), fallbackActions.driver())
         );
     }
     //endregion
 
     //region TYPE & GET TEXT
-    /** Waits for the element to be clickable, then replaces its content with {@code text} via {@link MobileElementUtils#updateValue}. */
+    /** Waits for the element to be clickable, then replaces its content with {@code text} via {@link ElementUtils#updateValue}. */
     public void type(By locator, String text) {
         failureCatcher.withFailureCapture(
-                TYPE, locator, "'" + text + "'",
-                () -> MobileElementUtils.updateValue(driverWait.clickable(locator), text)
+                TYPE, locator, text,
+                () -> ElementUtils.updateValue(driverWait.clickable(locator), text)
         );
     }
 
     /** Types {@code text} after the element's current content, without clicking or clearing it first. */
     public void append(By locator, String text) {
-        failureCatcher.withFailureCapture(TYPE, locator, "+'" + text + "'",
+        failureCatcher.withFailureCapture(TYPE, locator, text,
                 () -> driverWait.visible(locator).sendKeys(text)
         );
     }
@@ -252,7 +264,7 @@ public class ElementActions {
     /**
      * Reads the element's text per {@code strategy}: {@code HARD_WAIT} pauses then reads directly
      * via {@link FallbackActions#readText}; {@code DEFAULT} waits for visibility and reads via
-     * {@link MobileElementUtils#getActualText}, retrying up to 3 times if the element goes stale
+     * {@link ElementUtils#getActualText}, retrying up to 3 times if the element goes stale
      * between the wait and the read (a real race on some native apps that re-render the element
      * right after it becomes visible), falling back to {@link FallbackActions#readText} if all
      * retries are exhausted. Any other strategy returns {@code ""} rather than throwing.
@@ -268,13 +280,13 @@ public class ElementActions {
                         case DEFAULT -> {
                             for (int i = 0; i < 3; i++) {
                                 try {
-                                    return MobileElementUtils.getActualText(driverWait.visible(locator));
+                                    return ElementUtils.getActualText(driverWait.visible(locator));
                                 } catch (StaleElementReferenceException e) {
                                     log.debug("Text stale (attempt {}), retrying: {}", i + 1, locator);
                                     fallbackActions.shortPause();
                                 }
                             }
-                            log.warn("⚠ TEXT fallback used after retries for {}", locator);
+                            log.warn("TEXT fallback used after retries for {}", locator);
                             return fallbackActions.readText(locator);
                         }
                     }
@@ -342,13 +354,13 @@ public class ElementActions {
 
     /**
      * Whether the element is enabled/interactable, waiting up to the short timeout for it to become
-     * visible first, via {@link MobileValidationUtils#isButtonEnabled}. Never throws — not
+     * visible first, via {@link ValidationUtils#isButtonEnabled}. Never throws — not
      * found/timed out/gone stale all count as "not enabled" ({@code false}).
      */
     public boolean isEnabled(By locator) {
         try {
             WebElement el = driverWait.visibleShort(locator);
-            return MobileValidationUtils.isButtonEnabled(el);
+            return ValidationUtils.isButtonEnabled(el);
         } catch (NoSuchElementException | TimeoutException | StaleElementReferenceException ignored) {
             return false;
         }
@@ -356,6 +368,6 @@ public class ElementActions {
     //endregion
 
     private void logFallback(ElementAction action, ActionStrategy strategy, By locator) {
-        log.warn("⚠ {} fallback used [{}] for {}", action, strategy, locator);
+        log.warn("{} fell back to {} for {}", action.name().toLowerCase(), strategy, locator);
     }
 }

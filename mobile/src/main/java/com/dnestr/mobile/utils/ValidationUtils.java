@@ -13,7 +13,7 @@ import java.io.ByteArrayInputStream;
 
 /** Reads of an element's or a screenshot's state that differ between Android and iOS, returned as booleans for the caller to assert. */
 @UtilityClass
-public class MobileValidationUtils {
+public class ValidationUtils {
 
     /**
      * Whether {@code element} is enabled and interactable, platform-appropriately: on iOS, the

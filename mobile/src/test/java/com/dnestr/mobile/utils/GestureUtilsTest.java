@@ -57,7 +57,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class AppInteractionUtilsTest {
+class GestureUtilsTest {
 
     @Mock
     private AppiumDriver driver;
@@ -81,7 +81,7 @@ class AppInteractionUtilsTest {
     void tapTopSafeAreaTapsTopCenter() {
         stubScreenSize(driver, 1000, 2000);
 
-        AppInteractionUtils.tapTopSafeArea(driver);
+        GestureUtils.tapTopSafeArea(driver);
 
         assertThat(firstMove(driver)).containsEntry("x", 500).containsEntry("y", 200);
     }
@@ -90,7 +90,7 @@ class AppInteractionUtilsTest {
     void tapNeutralAreaTapsUpperQuarterCenter() {
         stubScreenSize(driver, 1000, 2000);
 
-        AppInteractionUtils.tapNeutralArea(driver);
+        GestureUtils.tapNeutralArea(driver);
 
         assertThat(firstMove(driver)).containsEntry("x", 500).containsEntry("y", 500);
     }
@@ -101,7 +101,7 @@ class AppInteractionUtilsTest {
     void longPressHoldsAtElementCenterForGivenDuration() {
         when(element.getRect()).thenReturn(rect(100, 200, 50, 80));
 
-        AppInteractionUtils.longPress(element, Duration.ofMillis(1500), driver);
+        GestureUtils.longPress(element, Duration.ofMillis(1500), driver);
 
         List<Map<String, Object>> actions = performedActions(driver);
         assertThat(actions).extracting(a -> a.get("type"))
@@ -114,7 +114,7 @@ class AppInteractionUtilsTest {
     void doubleTapTapsTheCenterTwiceWithAPauseBetween() {
         when(element.getRect()).thenReturn(rect(100, 200, 50, 80));
 
-        AppInteractionUtils.doubleTap(element, driver);
+        GestureUtils.doubleTap(element, driver);
 
         List<Map<String, Object>> actions = performedActions(driver);
         assertThat(actions).extracting(a -> a.get("type"))
@@ -125,7 +125,7 @@ class AppInteractionUtilsTest {
 
     @Test
     void dragAndDropHoldsThenMovesToTheTarget() {
-        AppInteractionUtils.dragAndDrop(new Point(10, 20), new Point(30, 400), Duration.ofMillis(800), Duration.ofMillis(600), driver);
+        GestureUtils.dragAndDrop(new Point(10, 20), new Point(30, 400), Duration.ofMillis(800), Duration.ofMillis(600), driver);
 
         List<Map<String, Object>> actions = performedActions(driver);
         assertThat(actions).extracting(a -> a.get("type"))
@@ -137,7 +137,7 @@ class AppInteractionUtilsTest {
 
     @Test
     void drawWithFingerDrawsZigzagWithoutLiftingFinger() {
-        AppInteractionUtils.drawWithFinger(rect(0, 0, 400, 300), 4, driver);
+        GestureUtils.drawWithFinger(rect(0, 0, 400, 300), 4, driver);
 
         List<Map<String, Object>> actions = performedActions(driver);
         assertThat(actions).extracting(a -> a.get("type"))
@@ -153,7 +153,7 @@ class AppInteractionUtilsTest {
 
     @Test
     void drawWithFingerOffsetsByBoxOrigin() {
-        AppInteractionUtils.drawWithFinger(rect(10, 20, 400, 300), 1, driver);
+        GestureUtils.drawWithFinger(rect(10, 20, 400, 300), 1, driver);
 
         List<Map<String, Object>> actions = performedActions(driver);
         assertThat(actions.get(0)).containsEntry("x", 60).containsEntry("y", 120);
@@ -164,7 +164,7 @@ class AppInteractionUtilsTest {
     void drawWithFingerRejectsNonPositiveStrokes() {
         Rectangle box = rect(0, 0, 400, 300);
 
-        assertThatThrownBy(() -> AppInteractionUtils.drawWithFinger(box, 0, driver))
+        assertThatThrownBy(() -> GestureUtils.drawWithFinger(box, 0, driver))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("strokes");
         verifyNoInteractions(driver);
@@ -174,7 +174,7 @@ class AppInteractionUtilsTest {
     void swipeOnIosUsesMobileSwipeWithDirectionOnly() {
         System.setProperty("platform", "IOS");
 
-        AppInteractionUtils.swipe(driver, "up");
+        GestureUtils.swipe(driver, "up");
 
         verify(driver).executeScript("mobile: swipe", Map.of("direction", "up"));
     }
@@ -183,7 +183,7 @@ class AppInteractionUtilsTest {
     void swipeOnAndroidUsesSwipeGestureOverFixedRegion() {
         System.setProperty("platform", "ANDROID");
 
-        AppInteractionUtils.swipe(driver, "down");
+        GestureUtils.swipe(driver, "down");
 
         verify(driver).executeScript("mobile: swipeGesture", Map.of(
                 "left", 100,
@@ -200,7 +200,7 @@ class AppInteractionUtilsTest {
         System.setProperty("platform", "IOS");
         AtomicInteger checks = new AtomicInteger();
 
-        boolean reached = AppInteractionUtils.swipeUpUntil(() -> checks.incrementAndGet() > 2, 5, driver);
+        boolean reached = GestureUtils.swipeUpUntil(() -> checks.incrementAndGet() > 2, 5, driver);
 
         assertThat(reached).isTrue();
         verify(driver, times(2)).executeScript("mobile: swipe", Map.of("direction", "up"));
@@ -211,7 +211,7 @@ class AppInteractionUtilsTest {
         System.setProperty("platform", "IOS");
         AtomicInteger checks = new AtomicInteger();
 
-        boolean reached = AppInteractionUtils.swipeUpUntil(() -> checks.incrementAndGet() > 99, 3, driver);
+        boolean reached = GestureUtils.swipeUpUntil(() -> checks.incrementAndGet() > 99, 3, driver);
 
         assertThat(reached).isFalse();
         assertThat(checks).hasValue(4);
@@ -223,7 +223,7 @@ class AppInteractionUtilsTest {
         System.setProperty("platform", "IOS");
         when(driver.getScreenshotAs(OutputType.BYTES)).thenReturn(png(Color.WHITE), png(Color.BLACK));
 
-        assertThat(AppInteractionUtils.isScrollableBySwipeUp(driver, 0.01)).isTrue();
+        assertThat(GestureUtils.isScrollableBySwipeUp(driver, 0.01)).isTrue();
 
         InOrder order = inOrder(driver);
         order.verify(driver).getScreenshotAs(OutputType.BYTES);
@@ -237,7 +237,7 @@ class AppInteractionUtilsTest {
         byte[] same = png(Color.WHITE);
         when(driver.getScreenshotAs(OutputType.BYTES)).thenReturn(same, same);
 
-        assertThat(AppInteractionUtils.isScrollableBySwipeUp(driver, 0.01)).isFalse();
+        assertThat(GestureUtils.isScrollableBySwipeUp(driver, 0.01)).isFalse();
     }
 
     @Test
@@ -247,7 +247,7 @@ class AppInteractionUtilsTest {
                 .thenThrow(new NoSuchElementException("still loading"))
                 .thenReturn(element);
 
-        assertThat(AppInteractionUtils.scrollIntoView("row", Duration.ofSeconds(5), driver)).isSameAs(element);
+        assertThat(GestureUtils.scrollIntoView("row", Duration.ofSeconds(5), driver)).isSameAs(element);
         verify(driver, times(2)).findElement(any(By.class));
     }
 
@@ -256,7 +256,7 @@ class AppInteractionUtilsTest {
         System.setProperty("platform", "ANDROID");
         when(driver.findElement(any(By.class))).thenThrow(new NoSuchElementException("never there"));
 
-        assertThatThrownBy(() -> AppInteractionUtils.scrollIntoView("row", Duration.ZERO, driver))
+        assertThatThrownBy(() -> GestureUtils.scrollIntoView("row", Duration.ZERO, driver))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessageContaining("never there");
         verify(driver, times(1)).findElement(any(By.class));
@@ -269,7 +269,7 @@ class AppInteractionUtilsTest {
                 + ".scrollIntoView(new UiSelector().resourceId(\"doc-row-ssn\"))");
         when(driver.findElement(search)).thenReturn(element);
 
-        assertThat(AppInteractionUtils.scrollIntoView("doc-row-ssn", driver)).isSameAs(element);
+        assertThat(GestureUtils.scrollIntoView("doc-row-ssn", driver)).isSameAs(element);
         verify(driver, never()).executeScript(anyString(), anyMap());
     }
 
@@ -280,7 +280,7 @@ class AppInteractionUtilsTest {
                 + ".scrollIntoView(new UiSelector().resourceId(\"a\\\"b\\\\c\"))");
         when(driver.findElement(search)).thenReturn(element);
 
-        assertThat(AppInteractionUtils.scrollIntoView("a\"b\\c", driver)).isSameAs(element);
+        assertThat(GestureUtils.scrollIntoView("a\"b\\c", driver)).isSameAs(element);
     }
 
     @Test
@@ -288,7 +288,7 @@ class AppInteractionUtilsTest {
         System.setProperty("platform", "ANDROID");
         when(driver.findElement(any(By.class))).thenThrow(new NoSuchElementException("not found"));
 
-        assertThatThrownBy(() -> AppInteractionUtils.scrollIntoView("missing", driver))
+        assertThatThrownBy(() -> GestureUtils.scrollIntoView("missing", driver))
                 .isInstanceOf(NoSuchElementException.class);
     }
 
@@ -301,7 +301,7 @@ class AppInteractionUtilsTest {
         when(driver.findElement(target)).thenReturn(element);
         stubScreenSize(driver, 1000, 2000);
 
-        assertThat(AppInteractionUtils.scrollIntoView("doc-row-ssn", driver)).isSameAs(element);
+        assertThat(GestureUtils.scrollIntoView("doc-row-ssn", driver)).isSameAs(element);
 
         verify(driver, never()).perform(any());
         verify(driver, never()).executeScript(anyString(), anyMap());
@@ -318,7 +318,7 @@ class AppInteractionUtilsTest {
         when(driver.findElement(target)).thenReturn(element);
         stubScreenSize(driver, 1000, 2000);
 
-        assertThat(AppInteractionUtils.scrollIntoView("personal-info-email", driver)).isSameAs(element);
+        assertThat(GestureUtils.scrollIntoView("personal-info-email", driver)).isSameAs(element);
 
         assertThat(firstMove(driver)).containsEntry("x", 500).containsEntry("y", 900);
         verify(driver, times(1)).perform(any());
@@ -333,7 +333,7 @@ class AppInteractionUtilsTest {
         when(driver.findElement(target)).thenReturn(element);
         stubScreenSize(driver, 1000, 2000);
 
-        assertThat(AppInteractionUtils.scrollIntoView("it's", driver)).isSameAs(element);
+        assertThat(GestureUtils.scrollIntoView("it's", driver)).isSameAs(element);
 
         InOrder order = inOrder(driver);
         order.verify(driver, times(4)).perform(any());
@@ -347,150 +347,13 @@ class AppInteractionUtilsTest {
         when(driver.executeScript(eq("mobile: scroll"), anyMap())).thenThrow(new WebDriverException("no match"));
         stubScreenSize(driver, 1000, 2000);
 
-        assertThatThrownBy(() -> AppInteractionUtils.scrollIntoView("missing", driver))
+        assertThatThrownBy(() -> GestureUtils.scrollIntoView("missing", driver))
                 .isInstanceOf(WebDriverException.class)
                 .hasMessageContaining("no match");
         verify(driver, times(4)).perform(any());
         verify(driver, never()).findElement(any(By.class));
     }
     //endregion
-
-    //region KEYBOARD
-    @Test
-    void hideKeyboardOnAndroidUsesNativeCommand() {
-        System.setProperty("platform", "ANDROID");
-        when(androidDriver.isKeyboardShown()).thenReturn(true);
-
-        AppInteractionUtils.hideKeyboard(androidDriver);
-
-        verify(androidDriver).hideKeyboard();
-        verify(androidDriver, never()).executeScript(anyString(), anyMap());
-    }
-
-    @Test
-    void hideKeyboardDoesNothingWhenNoKeyboardIsShown() {
-        System.setProperty("platform", "ANDROID");
-
-        AppInteractionUtils.hideKeyboard(androidDriver);
-
-        verify(androidDriver, never()).hideKeyboard();
-        verify(androidDriver, never()).executeScript(anyString(), anyMap());
-    }
-
-    /** Back would leave the screen whenever the "shown" keyboard was not really up, as on an emulator with a hardware keyboard. */
-    @Test
-    void hideKeyboardOnAndroidDoesNotPressBackWhenTheHideFails() {
-        System.setProperty("platform", "ANDROID");
-        when(androidDriver.isKeyboardShown()).thenReturn(true);
-        doThrow(new WebDriverException("Soft keyboard not present")).when(androidDriver).hideKeyboard();
-
-        assertThatCode(() -> AppInteractionUtils.hideKeyboard(androidDriver)).doesNotThrowAnyException();
-
-        verify(androidDriver, never()).executeScript(anyString(), anyMap());
-        verify(androidDriver, never()).perform(any());
-    }
-
-    @Test
-    void hideKeyboardOnIosFallsBackToTapNearTop() {
-        System.setProperty("platform", "IOS");
-        when(iosDriver.isKeyboardShown()).thenReturn(true);
-        doThrow(new WebDriverException("no keyboard")).when(iosDriver).hideKeyboard();
-        stubScreenSize(iosDriver, 1000, 2000);
-
-        AppInteractionUtils.hideKeyboard(iosDriver);
-
-        assertThat(firstMove(iosDriver)).containsEntry("x", 500).containsEntry("y", 200);
-    }
-
-    @Test
-    void hideKeyboardOnIosPressesTheKeyboardsReturnKeyWhenTheHideFails() {
-        System.setProperty("platform", "IOS");
-        when(iosDriver.isKeyboardShown()).thenReturn(true, false);
-        doThrow(new WebDriverException("Did not know how to dismiss the keyboard")).when(iosDriver).hideKeyboard();
-        when(iosDriver.findElements(SystemLocators.iosKeyboardDismissKey())).thenReturn(List.of(element));
-
-        AppInteractionUtils.hideKeyboard(iosDriver);
-
-        verify(element).click();
-        verify(iosDriver, never()).perform(any());
-    }
-
-    @Test
-    void hideKeyboardOnIosTapsNearTopWhenTheReturnKeyLeavesTheKeyboardUp() {
-        System.setProperty("platform", "IOS");
-        when(iosDriver.isKeyboardShown()).thenReturn(true);
-        doThrow(new WebDriverException("Did not know how to dismiss the keyboard")).when(iosDriver).hideKeyboard();
-        when(iosDriver.findElements(any(By.class))).thenReturn(List.of(element));
-        stubScreenSize(iosDriver, 1000, 2000);
-
-        AppInteractionUtils.hideKeyboard(iosDriver);
-
-        verify(element).click();
-        assertThat(firstMove(iosDriver)).containsEntry("x", 500).containsEntry("y", 200);
-    }
-
-    @Test
-    void hideKeyboardOnIosSwallowsFallbackFailure() {
-        System.setProperty("platform", "IOS");
-        when(iosDriver.isKeyboardShown()).thenReturn(true);
-        doThrow(new WebDriverException("no keyboard")).when(iosDriver).hideKeyboard();
-        when(iosDriver.manage()).thenThrow(new WebDriverException("boom"));
-
-        assertThatCode(() -> AppInteractionUtils.hideKeyboard(iosDriver)).doesNotThrowAnyException();
-    }
-
-    @Test
-    void tapIosKeyboardDoneButtonTapsTheToolbarDone() {
-        System.setProperty("platform", "IOS");
-        when(driver.findElement(SystemLocators.iosKeyboardDoneButton())).thenReturn(element);
-
-        AppInteractionUtils.tapIosKeyboardDoneButton(driver);
-
-        verify(element).click();
-    }
-
-    @Test
-    void tapIosKeyboardDoneButtonRefusesAndroid() {
-        System.setProperty("platform", "ANDROID");
-
-        assertThatThrownBy(() -> AppInteractionUtils.tapIosKeyboardDoneButton(driver))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessageContaining("only available on iOS");
-        verifyNoInteractions(driver);
-    }
-
-    @Test
-    void typeIntoFocusedElementSendsTheKeysWithoutAnElement() {
-        AppInteractionUtils.typeIntoFocusedElement("123456", driver);
-
-        verify(driver).perform(sequences.capture());
-        assertThat(sequences.getValue().iterator().next().encode().toString()).contains("keyDown", "value=1", "value=6");
-    }
-    //endregion
-
-    //region SCREEN CONTENT
-    @Test
-    void getPageSourceTextsOnAndroidReadsTextAttributesInOrderWithoutRepeats() {
-        System.setProperty("platform", "ANDROID");
-        when(driver.getPageSource()).thenReturn("""
-                <hierarchy><node text="Call" content-desc="x"><node text=" (212) 555-0100 "/><node text=""/>\
-                <node text="Call"/></node></hierarchy>""");
-
-        assertThat(AppInteractionUtils.getPageSourceTexts(driver)).containsExactly("Call", "(212) 555-0100");
-    }
-
-    @Test
-    void getPageSourceTextsOnIosReadsLabelAndValue() {
-        System.setProperty("platform", "IOS");
-        when(driver.getPageSource()).thenReturn("""
-                <AppiumAUT><XCUIElementTypeApplication label="Phone"><XCUIElementTypeStaticText label="Mobile" value="2125550100"/>\
-                </XCUIElementTypeApplication></AppiumAUT>""");
-
-        assertThat(AppInteractionUtils.getPageSourceTexts(driver)).containsExactly("Phone", "Mobile", "2125550100");
-    }
-
-    //endregion
-
 
     /** Selenium's {@code Rectangle(x, y, height, width)} constructor takes height before width — build from point + dimension to avoid mixing them up. */
     private static Rectangle rect(int x, int y, int width, int height) {

@@ -5,14 +5,11 @@ import com.dnestr.base.states.AssertionState;
 import com.dnestr.base.states.ButtonState;
 import com.dnestr.base.states.FieldState;
 import com.dnestr.base.states.VisibleState;
-import com.dnestr.base.utils.CommonUtils;
 import com.dnestr.base.utils.WaitUtils;
 import com.dnestr.mobile.actions.ElementActions;
 import com.dnestr.base.assertions.Hardly;
-import com.dnestr.mobile.screens.AppScreen;
-import com.dnestr.mobile.screens.BaseScreen;
-import com.dnestr.mobile.screens.BaseScreenResolver;
-import com.dnestr.mobile.screens.Clickable;
+import com.dnestr.mobile.screens.ScreenElement;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.core.ConditionTimeoutException;
 import org.openqa.selenium.By;
@@ -23,8 +20,7 @@ import java.util.function.Supplier;
 /**
  * Base for flow classes that assert on screen state — mobile's counterpart to the web module's
  * {@code BaseAssertionFlow}. It holds the element checks every screen shares (visible/hidden, text, enabled,
- * editable), on an item of a {@link AppScreen} (looked up through the injected {@link BaseScreenResolver}) or a raw
- * locator, each {@link AssertionState#STRICTLY strictly} (fail now)
+ * editable), on a screen element or a raw locator, each {@link AssertionState#STRICTLY strictly} (fail now)
  * or {@link AssertionState#SOFTLY softly} (collect), and the generic {@code assert*}/{@code softAssert*} checks they
  * are built on. iOS draws typographic apostrophes, so text is compared with them turned into plain ones.
  * <p>
@@ -33,29 +29,18 @@ import java.util.function.Supplier;
  * failed check rather than letting it abort the soft batch; the {@code assert*} methods let it propagate.
  */
 @Slf4j
+@RequiredArgsConstructor
 public abstract class BaseAssertionFlow {
 
     private static final long TEXT_SETTLE_SECONDS = 10;
     private static final long TEXT_POLL_MILLIS = 500;
 
     protected final ElementActions elementActions;
-    protected final BaseScreenResolver screenResolver;
-
-    protected BaseAssertionFlow(ElementActions elementActions, BaseScreenResolver screenResolver) {
-        this.elementActions = elementActions;
-        this.screenResolver = screenResolver;
-    }
-
-    /** The {@link BaseScreen} that draws {@code screen}. */
-    protected BaseScreen resolve(AppScreen screen) {
-        return screenResolver.resolveScreen(screen);
-    }
 
     //region ELEMENT CHECKS
     /** Visible waits up to the long timeout for the element; hidden checks it is gone within the short one. */
-    public void verifyVisible(AppScreen screen, Clickable item, AssertionState assertion, VisibleState visible) {
-        BaseScreen drawn = resolve(screen);
-        verifyVisible(drawn.resolve(item), describe(drawn, item), assertion, visible);
+    public void verifyVisible(ScreenElement element, AssertionState assertion, VisibleState visible) {
+        verifyVisible(element.getLocator(), describe(element), assertion, visible);
     }
 
     /** Asserts the element is visible or hidden; {@code name} labels it in the failure message. */
@@ -67,21 +52,19 @@ public abstract class BaseAssertionFlow {
         assertBy(assertion, condition, "❌ %s should be %s".formatted(name, visible.name().toLowerCase()));
     }
 
-    /** Asserts the item's text equals {@code expected}, failing at once or at the end of the scenario per {@code assertion}. */
-    public void verifyTextEquals(AppScreen screen, Clickable item, AssertionState assertion, String expected) {
-        BaseScreen drawn = resolve(screen);
-        By locator = drawn.resolve(item);
-        String message = "❌ %s text validation".formatted(describe(drawn, item));
+    /** Asserts the element's text equals {@code expected}, failing at once or at the end of the scenario per {@code assertion}. */
+    public void verifyTextEquals(ScreenElement element, AssertionState assertion, String expected) {
+        By locator = element.getLocator();
+        String message = "❌ %s text validation".formatted(describe(element));
         switch (assertion) {
             case STRICTLY -> assertEquals(() -> text(locator), expected, message);
             case SOFTLY -> softAssertEquals(() -> text(locator), expected, message);
         }
     }
 
-    /** Softly asserts the item's text contains {@code expected}. */
-    public void verifyTextContains(AppScreen screen, Clickable item, String expected) {
-        BaseScreen drawn = resolve(screen);
-        verifyTextContains(drawn.resolve(item), describe(drawn, item), expected);
+    /** Softly asserts the element's text contains {@code expected}. */
+    public void verifyTextContains(ScreenElement element, String expected) {
+        verifyTextContains(element.getLocator(), describe(element), expected);
     }
 
     /**
@@ -104,30 +87,28 @@ public abstract class BaseAssertionFlow {
         return actual.contains(expected);
     }
 
-    /** Softly asserts the item is enabled or disabled. */
-    public void verifyItemState(AppScreen screen, Clickable item, ButtonState buttonState) {
-        BaseScreen drawn = resolve(screen);
-        By locator = drawn.resolve(item);
+    /** Softly asserts the element is enabled or disabled. */
+    public void verifyButtonState(ScreenElement element, ButtonState buttonState) {
+        By locator = element.getLocator();
         softAssertTrue(
                 () -> switch (buttonState) {
                     case ENABLED -> elementActions.isEnabled(locator);
                     case DISABLED -> !elementActions.isEnabled(locator);
                 },
-                "❌ %s should be %s".formatted(describe(drawn, item), buttonState.name().toLowerCase())
+                "❌ %s should be %s".formatted(describe(element), buttonState.name().toLowerCase())
         );
     }
 
     /** Editable is the field's {@code enabled} attribute; a field can be enabled yet not clickable while it has focus. */
-    public void verifyFieldState(AppScreen screen, Clickable item, AssertionState assertion, FieldState fieldState) {
-        BaseScreen drawn = resolve(screen);
-        By locator = drawn.resolve(item);
+    public void verifyFieldState(ScreenElement element, AssertionState assertion, FieldState fieldState) {
+        By locator = element.getLocator();
         BooleanSupplier enabled = () -> "true".equalsIgnoreCase(elementActions.find(locator).getAttribute("enabled"));
         BooleanSupplier condition = switch (fieldState) {
             case EDITABLE -> enabled;
             case READ_ONLY -> () -> !enabled.getAsBoolean();
         };
         assertBy(assertion, condition, "❌ %s should be %s".formatted(
-                describe(drawn, item), fieldState.name().replace("_", " ").toLowerCase()));
+                describe(element), fieldState.name().replace("_", " ").toLowerCase()));
     }
 
     protected void assertBy(AssertionState assertion, BooleanSupplier condition, String message) {
@@ -141,8 +122,9 @@ public abstract class BaseAssertionFlow {
         return elementActions.text(locator).replace("’", "'");
     }
 
-    protected static String describe(BaseScreen screen, Clickable item) {
-        return "%s | %s".formatted(CommonUtils.prettyClassName(screen), item);
+    /** {@code MyTripsElement.CARD_PRICE}, which names the screen as well as the element. */
+    protected static String describe(ScreenElement element) {
+        return element instanceof Enum<?> constant ? constant.getDeclaringClass().getSimpleName() + "." + constant.name() : element.toString();
     }
 
     private static boolean holds(BooleanSupplier condition) {

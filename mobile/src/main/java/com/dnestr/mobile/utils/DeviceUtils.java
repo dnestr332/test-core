@@ -1,5 +1,9 @@
 package com.dnestr.mobile.utils;
 
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
+import com.dnestr.mobile.locators.SystemLocators;
+import io.appium.java_client.HasOnScreenKeyboard;
 import com.dnestr.base.states.SwitchState;
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.mobile.actions.AppAction;
@@ -30,17 +34,16 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
-import static com.dnestr.base.logs.LogStyles.*;
 
 /**
  * Control of the device and of the app under test from outside it: app lifecycle, background and deep links,
  * orientation, hardware keys, lock, network, location, clipboard, the notification list, the emulator camera and
- * screen recording. Actions inside the app are in {@link AppInteractionUtils}. A method that works on one platform
+ * screen recording. Gestures are in {@link GestureUtils}. A method that works on one platform
  * only has that platform in its name and throws {@link UnsupportedOperationException} on the other.
  */
 @Slf4j
 @UtilityClass
-public class DeviceControlUtils {
+public class DeviceUtils {
 
     private final List<String> UDID_CAPABILITIES = List.of("appium:udid", "udid", "appium:deviceUDID", "deviceUDID");
 
@@ -48,7 +51,7 @@ public class DeviceControlUtils {
     /** Terminates, activates, or restarts (terminate then activate) the app identified by {@code appId}, if {@code driver} supports app lifecycle control; otherwise does nothing. */
     public void controlApp(AppiumDriver driver, String appId, AppAction action) {
         if (driver instanceof InteractsWithApps appDriver) {
-            log.info("📱 Action: {} | App: {}", action, appId);
+            log.info("Action: {} | App: {}", action, appId);
 
             switch (action) {
                 case TERMINATE -> appDriver.terminateApp(appId);
@@ -58,7 +61,7 @@ public class DeviceControlUtils {
                     appDriver.activateApp(appId);
                 }
             }
-            log.info("✅ Done: {}", action);
+            log.info("Done: {}", action);
         }
     }
 
@@ -82,7 +85,7 @@ public class DeviceControlUtils {
                 ((IOSDriver) driver).rotate(orientation);
             }
         } catch (Exception e) {
-            log.warn("⚠ Failed to set the orientation: {}", e.getMessage());
+            log.warn("Failed to set the orientation: {}", e.getMessage());
         }
     }
 
@@ -109,7 +112,7 @@ public class DeviceControlUtils {
 
     /** Presses {@code key} as a key event. */
     public void pressAndroidKey(AndroidKey key, AppiumDriver driver) {
-        PlatformGuards.requireAndroid("key events");
+        TestContext.requireAndroid("key events");
         driver.executeScript("mobile: pressKey", Map.of("keycode", key.getCode()));
     }
 
@@ -130,7 +133,7 @@ public class DeviceControlUtils {
 
     /** Turns Wi-Fi and mobile data on or off. */
     public void setAndroidConnectivity(boolean wifi, boolean data, AppiumDriver driver) {
-        PlatformGuards.requireAndroid("connectivity");
+        TestContext.requireAndroid("connectivity");
         driver.executeScript("mobile: setConnectivity", Map.of("wifi", wifi, "data", data));
     }
 
@@ -167,11 +170,22 @@ public class DeviceControlUtils {
     }
     //endregion
 
+    /**
+     * The package or bundle id of the app in front, e.g. after a tap hands over to another app. UiAutomator2's current
+     * package can read null, so on Android it comes from the resumed activity through adb.
+     */
+    @SuppressWarnings("unchecked")
+    public String getForegroundAppId(AppiumDriver driver) {
+        if (TestContext.isAndroid()) return AdbUtils.getAndroidForegroundPackage(getUdid(driver));
+        Map<String, Object> info = (Map<String, Object>) driver.executeScript("mobile: activeAppInfo");
+        return info == null ? "" : String.valueOf(info.getOrDefault("bundleId", ""));
+    }
+
     //region NOTIFICATIONS
     /** Title and text of every notification in the shade, one trimmed string each. */
     @SuppressWarnings("unchecked")
     public List<String> getAndroidNotifications(AppiumDriver driver) {
-        PlatformGuards.requireAndroid("notifications");
+        TestContext.requireAndroid("notifications");
         var result = (Map<String, Object>) driver.executeScript("mobile: getNotifications", Map.of());
         assert result != null;
         var items = (List<Map<String, Object>>) result.getOrDefault("statusBarNotifications", List.of());
@@ -188,7 +202,7 @@ public class DeviceControlUtils {
 
     /** Pulls down the notification shade. */
     public void openAndroidNotifications(AppiumDriver driver) {
-        PlatformGuards.requireAndroid("the notification shade");
+        TestContext.requireAndroid("the notification shade");
         driver.executeScript("mobile: openNotifications", Map.of());
     }
 
@@ -197,10 +211,10 @@ public class DeviceControlUtils {
      * side opens Control Center instead.
      */
     public void openIosNotificationCenter(AppiumDriver driver) {
-        PlatformGuards.requireIos("Notification Center");
+        TestContext.requireIos("Notification Center");
         Dimension size = driver.manage().window().getSize();
         int x = size.getWidth() / 4;
-        log.info("{} {} Opening Notification Center", INFO_SHORT, INFO);
+        log.info("Opening Notification Center");
         PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
 
         Sequence swipe = new Sequence(finger, 0)
@@ -226,7 +240,7 @@ public class DeviceControlUtils {
      * @throws IllegalStateException if the image cannot be read
      */
     public void injectAndroidEmulatorCameraImage(Path image, AppiumDriver driver) {
-        PlatformGuards.requireAndroid("camera image injection");
+        TestContext.requireAndroid("camera image injection");
         try {
             String payload = Base64.getEncoder().encodeToString(Files.readAllBytes(image));
             driver.executeScript("mobile: injectEmulatorCameraImage", Map.of("payload", payload));
@@ -260,6 +274,66 @@ public class DeviceControlUtils {
         } catch (IOException e) {
             throw new IllegalStateException("Could not write the recording to " + file, e);
         }
+    }
+    //endregion
+
+    //region KEYBOARD
+    /**
+     * Hides the on-screen keyboard; does nothing when none is up. On iOS a failed hide presses the keyboard's own Return
+     * or Done key, then falls back to a tap near the top of the screen. On Android it is only logged: pressing Back instead leaves the screen whenever the keyboard
+     * was not really up, and an emulator with a hardware keyboard reports one shown while drawing none.
+     */
+    public void hideKeyboard(AppiumDriver driver) {
+        if (driver instanceof HasOnScreenKeyboard keyboard && !keyboard.isKeyboardShown()) return;
+        try {
+            if (TestContext.isAndroid()) {
+                assert driver instanceof AndroidDriver;
+                ((AndroidDriver) driver).hideKeyboard();
+            } else {
+                assert driver instanceof IOSDriver;
+                ((IOSDriver) driver).hideKeyboard();
+            }
+        } catch (Exception e) {
+            if (TestContext.isAndroid()) {
+                log.warn("Failed to hide keyboard, leaving it: {}", e.getMessage());
+                return;
+            }
+            log.warn("Failed to hide keyboard, pressing its return key instead: {}", e.getMessage());
+            if (!pressIosKeyboardDismissKey(driver)) tapNearTopQuietly(driver);
+        }
+    }
+
+    /** WebDriverAgent cannot dismiss a keyboard whose only way out is its return key, such as React Native's default one. */
+    private boolean pressIosKeyboardDismissKey(AppiumDriver driver) {
+        try {
+            List<WebElement> keys = driver.findElements(SystemLocators.iosKeyboardDismissKey());
+            if (keys.isEmpty()) return false;
+            keys.getFirst().click();
+            return !((HasOnScreenKeyboard) driver).isKeyboardShown();
+        } catch (Exception e) {
+            log.warn("Failed to press the keyboard's return key, tapping near the top instead: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    private void tapNearTopQuietly(AppiumDriver driver) {
+        try {
+            Dimension size = driver.manage().window().getSize();
+            GestureUtils.tapByCoordinates(size.getWidth() / 2, size.getHeight() / 10, driver);
+        } catch (Exception e) {
+            log.warn("Failed to hide keyboard by tapping: {}", e.getMessage());
+        }
+    }
+
+    /** Taps "Done" on the iOS keyboard's toolbar, which a number pad needs to close. */
+    public void tapIosKeyboardDoneButton(AppiumDriver driver) {
+        TestContext.requireIos("the keyboard's Done button");
+        driver.findElement(SystemLocators.iosKeyboardDoneButton()).click();
+    }
+
+    /** Types {@code text} into whichever element has focus, for an input the UI tree leaves out (e.g. a 1x1 code field). */
+    public void typeIntoFocusedElement(String text, AppiumDriver driver) {
+        new Actions(driver).sendKeys(text).perform();
     }
     //endregion
 }

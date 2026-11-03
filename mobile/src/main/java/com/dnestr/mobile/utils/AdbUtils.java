@@ -146,6 +146,15 @@ public class AdbUtils {
                 .orElseThrow(() -> new IllegalStateException(appPackage + " is not installed on " + udid));
     }
 
+    public boolean isAndroidAppInstalled(String udid, String appPackage) {
+        return runAndroidShell(udid, "pm", "path", appPackage).stream().anyMatch(line -> line.startsWith("package:"));
+    }
+
+    /** Deletes the app's data and cache, as Settings' Clear storage does; the app is stopped. */
+    public void clearAndroidAppData(String udid, String appPackage) {
+        runAndroidShell(udid, "pm", "clear", appPackage);
+    }
+
     /** Stops the app and its background work at once, without the app being told. */
     public void forceStopAndroidApp(String udid, String appPackage) {
         runAndroidShell(udid, "am", "force-stop", appPackage);

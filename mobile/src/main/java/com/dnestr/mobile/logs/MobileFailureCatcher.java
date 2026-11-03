@@ -1,23 +1,22 @@
 package com.dnestr.mobile.logs;
 
-import com.dnestr.base.logs.BaseFailureCatcher;
+import com.dnestr.base.logs.FailureCatcher;
 import com.dnestr.base.actions.ElementAction;
 import org.openqa.selenium.By;
 
 import java.util.function.Supplier;
 
 /**
- * Mobile (Selenium/Appium {@link By}) specialization of {@code BaseFailureCatcher}: every action in
- * {@code ElementActions} routes through {@link #withFailureCapture}, which logs the action via
- * {@link MobilePrettyPrinter} before it runs, logs success/timing after, and on failure logs the error,
- * records it to {@code TestFailureContext}, then rethrows the original exception unchanged.
+ * Mobile (Selenium/Appium {@link By}) specialization of {@code FailureCatcher}: every action in
+ * {@code ElementActions} routes through {@link #withFailureCapture}, which logs it through
+ * {@link MobilePrettyPrinter} once it ends and rethrows a failure unchanged.
  * <p>
  * The two overloads below just fill in {@code null} for the {@code details} that doesn't apply to
  * a given action — the real capture logic lives in the base class.
  */
-public class FailureCatcher extends BaseFailureCatcher<By> {
+public class MobileFailureCatcher extends FailureCatcher<By> {
 
-    public FailureCatcher(MobilePrettyPrinter mobilePrettyPrinter) {
+    public MobileFailureCatcher(MobilePrettyPrinter mobilePrettyPrinter) {
         super(mobilePrettyPrinter);
     }
 

@@ -2,7 +2,7 @@ package com.dnestr.mobile.actions;
 
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.mobile.locators.SystemLocators;
-import com.dnestr.mobile.utils.DeviceControlUtils;
+import com.dnestr.mobile.utils.DeviceUtils;
 import com.dnestr.mobile.waits.DriverWait;
 import io.appium.java_client.AppiumDriver;
 import lombok.RequiredArgsConstructor;
@@ -65,18 +65,18 @@ public class SystemActions {
      */
     public void tapNotification(String text) {
         if (TestContext.isAndroid()) {
-            DeviceControlUtils.openAndroidNotifications(driver);
+            DeviceUtils.openAndroidNotifications(driver);
             elementActions.click(SystemLocators.androidNotification(text));
             return;
         }
-        DeviceControlUtils.openIosNotificationCenter(driver);
+        DeviceUtils.openIosNotificationCenter(driver);
         elementActions.click(SystemLocators.iosNotification(text));
     }
 
     /**
      * Takes a photo with the emulator's camera app and confirms it, pressing the shutter up to {@code shutterAttempts}
      * times, since a press can land before the camera is ready. It photographs whatever
-     * {@link DeviceControlUtils#injectAndroidEmulatorCameraImage} put in front of it.
+     * {@link DeviceUtils#injectAndroidEmulatorCameraImage} put in front of it.
      */
     public void takeAndroidEmulatorCameraPhoto(int shutterAttempts) {
         if (!TestContext.isAndroid()) {

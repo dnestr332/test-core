@@ -5,7 +5,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * A binary on/off state paired with its numeric (1/0) representation, e.g. for a device setting written as an
- * integer ({@code DeviceControlUtils.setAndroidHeadsUpNotifications}) or a raw value read back from the UI. Use it
+ * integer ({@code DeviceUtils.setAndroidHeadsUpNotifications}) or a raw value read back from the UI. Use it
  * where a plain {@code ON}/{@code OFF} fits better than {@link ToggleState}'s checked/unchecked.
  */
 @Getter

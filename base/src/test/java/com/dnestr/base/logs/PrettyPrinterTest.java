@@ -3,18 +3,15 @@ package com.dnestr.base.logs;
 import com.dnestr.base.actions.ElementAction;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+/** The action line: marker, action, duration, locator and value, with a password field's value masked. */
 class PrettyPrinterTest {
 
     static class FakePrettyPrinter extends PrettyPrinter<String> {
         @Override
-        protected String getLocatorType(String locator) {
-            return "css";
-        }
-
-        @Override
-        protected String getLocatorValue(String locator) {
+        protected String describe(String locator) {
             return locator;
         }
     }
@@ -22,38 +19,41 @@ class PrettyPrinterTest {
     private final FakePrettyPrinter printer = new FakePrettyPrinter();
 
     @Test
-    void start_withLocator_doesNotThrow() {
-        assertThatCode(() -> printer.start(ElementAction.CLICK, "#submit", "extra details"))
-                .doesNotThrowAnyException();
+    void aClickReadsActionDurationAndLocator() {
+        assertThat(printer.format(ElementAction.CLICK, "role=button[name=\"LOGIN\"i]", null, 0.1034))
+                .isEqualTo("👉 click        0.10s  role=button[name=\"LOGIN\"i]");
     }
 
     @Test
-    void start_withoutLocator_doesNotThrow() {
-        assertThatCode(() -> printer.start(ElementAction.CLICK, null, null))
-                .doesNotThrowAnyException();
+    void aTypedValueIsQuoted() {
+        assertThat(printer.format(ElementAction.TYPE, "role=textbox[name=\"Email\"i]", "qa@example.com", 0.7))
+                .endsWith("role=textbox[name=\"Email\"i]  \"qa@example.com\"");
     }
 
     @Test
-    void ok_doesNotThrow() {
-        assertThatCode(() -> printer.ok(0.42)).doesNotThrowAnyException();
+    void aValueTypedIntoAPasswordFieldIsMasked() {
+        assertThat(printer.format(ElementAction.TYPE, "role=textbox[name=\"Password\"i]", "s3cret!", 0.2))
+                .endsWith("\"********\"")
+                .doesNotContain("s3cret!");
     }
 
     @Test
-    void fail_withMultilineMessage_usesOnlyFirstLine() {
-        Throwable error = new RuntimeException("first line\nsecond line");
-        assertThatCode(() -> printer.fail(error)).doesNotThrowAnyException();
+    void detailsOfOtherActionsAreNotQuoted() {
+        assertThat(printer.format(ElementAction.LONG_PRESS, "id=card", "2000 ms", 2.0)).endsWith("id=card  2000 ms");
     }
 
     @Test
-    void fail_withNullMessage_doesNotThrow() {
-        Throwable error = new RuntimeException();
-        assertThatCode(() -> printer.fail(error)).doesNotThrowAnyException();
+    void anActionWithoutALocatorPrintsOnlyItsNameAndDuration() {
+        assertThat(printer.format(ElementAction.ZOOM, null, null, 0.181)).isEqualTo("👉 zoom         0.18s");
     }
 
     @Test
-    void fail_withNoStackTrace_doesNotThrow() {
-        Throwable error = new RuntimeException("boom");
-        error.setStackTrace(new StackTraceElement[0]);
-        assertThatCode(() -> printer.fail(error)).doesNotThrowAnyException();
+    void doneAndFailedLogWithoutThrowingEvenForAnErrorWithoutAMessage() {
+        assertThatCode(() -> {
+            printer.done(ElementAction.CLICK, "#ok", null, 0.1);
+            printer.done(ElementAction.CLICK, "#slow", null, PrettyPrinter.SLOW_SECONDS + 1);
+            printer.failed(ElementAction.CLICK, "#btn", null, 30, new RuntimeException("first line\nsecond line"));
+            printer.failed(ElementAction.CLICK, "#btn", null, 30, new IllegalStateException());
+        }).doesNotThrowAnyException();
     }
 }

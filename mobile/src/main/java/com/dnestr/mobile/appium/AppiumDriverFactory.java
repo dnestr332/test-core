@@ -9,7 +9,6 @@ import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.ios.IOSDriver;
 import lombok.extern.slf4j.Slf4j;
 
-import static com.dnestr.base.logs.LogStyles.*;
 
 /** Builds the concrete {@link AppiumDriver} subclass matching a {@link DriverConfig}'s platform. */
 @Slf4j
@@ -24,8 +23,7 @@ public class AppiumDriverFactory {
     public AppiumDriver createDriver(DriverConfig config) {
         MobilePlatform platform = config.platform();
 
-        log.info("{} {} Creating AppiumDriver for platform: {}{}",
-                INFO_SHORT, INFO, GREEN + platform, RESET);
+        log.info("Creating AppiumDriver for platform: {}", platform);
 
         return switch (config) {
             case AndroidConfig android -> new AndroidDriver(

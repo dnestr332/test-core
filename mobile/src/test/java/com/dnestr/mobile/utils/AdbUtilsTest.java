@@ -182,4 +182,27 @@ class AdbUtilsTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("did not restart");
     }
+
+    @Test
+    void isAndroidAppInstalledFindsThePackagePath() {
+        prints(List.of("package:/data/app/~~x/com.app-1/base.apk"), "adb", "-s", "emulator-5554", "shell", "pm", "path", "com.app");
+
+        assertThat(AdbUtils.isAndroidAppInstalled("emulator-5554", "com.app")).isTrue();
+    }
+
+    @Test
+    void isAndroidAppInstalledIsFalseWhenPmPrintsNoPath() {
+        prints(List.of(), "adb", "-s", "emulator-5554", "shell", "pm", "path", "com.app");
+
+        assertThat(AdbUtils.isAndroidAppInstalled("emulator-5554", "com.app")).isFalse();
+    }
+
+    @Test
+    void clearAndroidAppDataRunsPmClear() {
+        prints(List.of("Success"), "adb", "-s", "emulator-5554", "shell", "pm", "clear", "com.app");
+
+        AdbUtils.clearAndroidAppData("emulator-5554", "com.app");
+
+        process.verify(() -> ProcessUtils.run("adb", "-s", "emulator-5554", "shell", "pm", "clear", "com.app"));
+    }
 }

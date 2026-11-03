@@ -5,8 +5,8 @@ import lombok.experimental.UtilityClass;
 
 /**
  * Thread-local holder for the current test thread's target {@link MobilePlatform} and CI/local
- * detection, read throughout the mobile module (e.g. {@code MobileElementUtils},
- * {@code MobileValidationUtils}, {@code AppInteractionUtils}, {@code DeviceControlUtils}) to branch platform-specific behavior
+ * detection, read throughout the mobile module (e.g. {@code ElementUtils},
+ * {@code ValidationUtils}, {@code GestureUtils}, {@code DeviceUtils}) to branch platform-specific behavior
  * without threading a platform parameter through every call.
  */
 @UtilityClass
@@ -56,5 +56,19 @@ public class TestContext {
     /** Whether the current thread's platform ({@link #getPlatform()}) is {@link MobilePlatform#IOS}. */
     public boolean isIos() {
         return getPlatform() == MobilePlatform.IOS;
+    }
+
+    /** Refuses an Android-only call on iOS, naming what was asked for. */
+    public void requireAndroid(String what) {
+        if (!isAndroid()) {
+            throw new UnsupportedOperationException(what + " is only available on Android");
+        }
+    }
+
+    /** Refuses an iOS-only call on Android, naming what was asked for. */
+    public void requireIos(String what) {
+        if (!isIos()) {
+            throw new UnsupportedOperationException(what + " is only available on iOS");
+        }
     }
 }

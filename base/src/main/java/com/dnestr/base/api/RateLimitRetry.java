@@ -57,7 +57,7 @@ public class RateLimitRetry {
 
         for (int attempt = 1; response.statusCode() == TOO_MANY_REQUESTS && attempt <= maxRetries; attempt++) {
             Duration delay = retryAfter(response).orElse(baseDelay.multipliedBy(attempt));
-            log.warn("⚠ Rate limited (429), retrying in {} ms (attempt {}/{})", delay.toMillis(), attempt, maxRetries);
+            log.warn("Rate limited (429), retrying in {} ms (attempt {}/{})", delay.toMillis(), attempt, maxRetries);
             sleeper.accept(delay);
             response = call.get();
         }

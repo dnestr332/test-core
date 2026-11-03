@@ -1,7 +1,7 @@
 package com.dnestr.mobile.actions;
 
 import com.dnestr.mobile.context.TestContext;
-import com.dnestr.mobile.utils.AppInteractionUtils;
+import com.dnestr.mobile.utils.GestureUtils;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.remote.AppiumWebElement;
 import org.junit.jupiter.api.AfterEach;
@@ -72,17 +72,17 @@ class FallbackActionsTest {
     }
 
     @Test
-    void tapByElementCenterComputesRectCenterAndDelegatesToDeviceUtils() {
+    void tapByElementCenterTapsTheRectCenter() {
         when(driver.findElement(locator)).thenReturn(element);
         when(element.getRect()).thenReturn(new Rectangle(10, 20, 50, 100));
 
         FallbackActions fallbackActions = new FallbackActions(driver);
 
-        try (MockedStatic<AppInteractionUtils> deviceUtils = mockStatic(AppInteractionUtils.class)) {
+        try (MockedStatic<GestureUtils> interactions = mockStatic(GestureUtils.class)) {
             fallbackActions.tapByElementCenter(locator);
 
             // Rectangle ctor is (x, y, height, width): x=10, y=20, height=50, width=100 -> center (60, 45)
-            deviceUtils.verify(() -> AppInteractionUtils.tapByCoordinates(eq(60), eq(45), eq(driver)));
+            interactions.verify(() -> GestureUtils.tapByCoordinates(eq(60), eq(45), eq(driver)));
         }
     }
 

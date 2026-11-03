@@ -73,4 +73,18 @@ class TestContextTest {
 
         assertThat(TestContext.getPlatform()).isEqualTo(MobilePlatform.IOS);
     }
+
+    @Test
+    void requireAndroidRefusesIosAndNamesTheCall() {
+        System.setProperty("platform", "IOS");
+        assertThatThrownBy(() -> TestContext.requireAndroid("Time zone"))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Time zone is only available on Android");
+    }
+
+    @Test
+    void requireIosPassesOnIos() {
+        System.setProperty("platform", "IOS");
+        TestContext.requireIos("Simulator reboot");
+    }
 }

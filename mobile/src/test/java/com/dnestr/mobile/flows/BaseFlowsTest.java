@@ -6,10 +6,8 @@ import com.dnestr.base.states.ButtonState;
 import com.dnestr.base.states.FieldState;
 import com.dnestr.base.states.VisibleState;
 import com.dnestr.mobile.actions.ElementActions;
-import com.dnestr.mobile.screens.BaseScreen;
-import com.dnestr.mobile.screens.BaseScreenResolver;
-import com.dnestr.mobile.screens.Clickable;
-import com.dnestr.mobile.screens.AppScreen;
+import com.dnestr.mobile.screens.ScreenElement;
+import com.dnestr.mobile.context.TestContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,48 +22,28 @@ import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-/** {@link BaseActionFlow} and {@link BaseAssertionFlow} against a screen whose one item resolves to a fixed locator. */
+/** {@link BaseActionFlow} and {@link BaseAssertionFlow} against an element with a fixed locator. */
 @ExtendWith(MockitoExtension.class)
 class BaseFlowsTest {
 
-    enum Item implements Clickable {
+    enum SettingsElement implements ScreenElement {
         SAVE_BUTTON;
 
         @Override
-        public boolean isClickable() {
-            return true;
-        }
-    }
-
-    static class SettingsScreen extends BaseScreen {
-        SettingsScreen(ElementActions elementActions) {
-            super(elementActions);
-        }
-
-        @Override
-        public By resolve(Clickable item) {
+        public By getLocator() {
             return LOCATOR;
         }
     }
 
-    enum State implements AppScreen {
-        SETTINGS;
-
-        @Override
-        public Class<? extends BaseScreen> getScreenClass() {
-            return SettingsScreen.class;
-        }
-    }
-
     static class Actions extends BaseActionFlow {
-        Actions(ElementActions elementActions, BaseScreenResolver resolver) {
-            super(elementActions, resolver);
+        Actions(ElementActions elementActions) {
+            super(elementActions);
         }
     }
 
     static class Assertions extends BaseAssertionFlow {
-        Assertions(ElementActions elementActions, BaseScreenResolver resolver) {
-            super(elementActions, resolver);
+        Assertions(ElementActions elementActions) {
+            super(elementActions);
         }
 
         @Override
@@ -79,52 +57,49 @@ class BaseFlowsTest {
     @Mock
     private ElementActions elementActions;
     @Mock
-    private BaseScreenResolver resolver;
-    @Mock
     private WebElement element;
 
-    private SettingsScreen screen;
     private Assertions assertions;
 
     @BeforeEach
     void setUp() {
-        screen = new SettingsScreen(elementActions);
-        assertions = new Assertions(elementActions, resolver);
-        lenient().when(resolver.resolveScreen(State.SETTINGS)).thenReturn(screen);
+        assertions = new Assertions(elementActions);
     }
 
     @AfterEach
     void cleanup() {
         Softly.reset();
+        System.clearProperty("platform");
+        TestContext.clearPlatform();
     }
 
     @Test
-    void actionFlowResolvesTheScreenThenActsOnItsItem() {
+    void actionFlowActsOnTheElementsLocator() {
         when(elementActions.text(LOCATOR)).thenReturn("Save");
-        Actions actions = new Actions(elementActions, resolver);
+        Actions actions = new Actions(elementActions);
 
-        actions.tap(State.SETTINGS, Item.SAVE_BUTTON);
-        actions.type(State.SETTINGS, Item.SAVE_BUTTON, "x");
+        actions.tap(SettingsElement.SAVE_BUTTON);
+        actions.type(SettingsElement.SAVE_BUTTON, "x");
 
         verify(elementActions).click(LOCATOR);
         verify(elementActions).type(LOCATOR, "x");
-        assertThat(actions.text(State.SETTINGS, Item.SAVE_BUTTON)).isEqualTo("Save");
+        assertThat(actions.text(SettingsElement.SAVE_BUTTON)).isEqualTo("Save");
     }
 
     @Test
-    void verifyVisibleStrictlyFailsAtOnceAndNamesTheScreenAndItem() {
+    void verifyVisibleStrictlyFailsAtOnceAndNamesTheElement() {
         when(elementActions.isVisible(LOCATOR)).thenReturn(false);
 
-        assertThatThrownBy(() -> assertions.verifyVisible(State.SETTINGS, Item.SAVE_BUTTON, AssertionState.STRICTLY, VisibleState.VISIBLE))
+        assertThatThrownBy(() -> assertions.verifyVisible(SettingsElement.SAVE_BUTTON, AssertionState.STRICTLY, VisibleState.VISIBLE))
                 .isInstanceOf(AssertionError.class)
-                .hasMessageContaining("SettingsScreen | SAVE_BUTTON should be visible");
+                .hasMessageContaining("SettingsElement.SAVE_BUTTON should be visible");
     }
 
     @Test
     void verifyVisibleHiddenWaitsForTheElementToGo() {
         when(elementActions.isHidden(LOCATOR)).thenReturn(true);
 
-        assertions.verifyVisible(State.SETTINGS, Item.SAVE_BUTTON, AssertionState.SOFTLY, VisibleState.HIDDEN);
+        assertions.verifyVisible(SettingsElement.SAVE_BUTTON, AssertionState.SOFTLY, VisibleState.HIDDEN);
 
         assertThatNoException().isThrownBy(Softly::assertAll);
         verify(elementActions, never()).isVisible(LOCATOR);
@@ -136,14 +111,14 @@ class BaseFlowsTest {
         when(elementActions.text(LOCATOR)).thenReturn("Don’t save");
 
         assertThatNoException().isThrownBy(() ->
-                assertions.verifyTextEquals(State.SETTINGS, Item.SAVE_BUTTON, AssertionState.STRICTLY, "Don't save"));
+                assertions.verifyTextEquals(SettingsElement.SAVE_BUTTON, AssertionState.STRICTLY, "Don't save"));
     }
 
     @Test
     void verifyTextContainsWaitsForTextThatArrivesLate() {
         when(elementActions.text(LOCATOR)).thenReturn("Saving…", "Saving…", "Saved");
 
-        assertions.verifyTextContains(State.SETTINGS, Item.SAVE_BUTTON, "Saved");
+        assertions.verifyTextContains(SettingsElement.SAVE_BUTTON, "Saved");
 
         assertThatNoException().isThrownBy(Softly::assertAll);
     }
@@ -152,16 +127,16 @@ class BaseFlowsTest {
     void verifyTextContainsUsesTheSubclassKeyword() {
         when(elementActions.text(LOCATOR)).thenReturn("anything");
 
-        assertions.verifyTextContains(State.SETTINGS, Item.SAVE_BUTTON, "not empty");
+        assertions.verifyTextContains(SettingsElement.SAVE_BUTTON, "not empty");
 
         assertThatNoException().isThrownBy(Softly::assertAll);
     }
 
     @Test
-    void verifyItemStateRecordsADisabledButtonSoftly() {
+    void verifyButtonStateRecordsADisabledButtonSoftly() {
         when(elementActions.isEnabled(LOCATOR)).thenReturn(false);
 
-        assertions.verifyItemState(State.SETTINGS, Item.SAVE_BUTTON, ButtonState.ENABLED);
+        assertions.verifyButtonState(SettingsElement.SAVE_BUTTON, ButtonState.ENABLED);
 
         assertThatThrownBy(Softly::assertAll).hasMessageContaining("SAVE_BUTTON should be enabled");
     }
@@ -172,20 +147,32 @@ class BaseFlowsTest {
         when(element.getAttribute("enabled")).thenReturn("false");
 
         assertThatNoException().isThrownBy(() ->
-                assertions.verifyFieldState(State.SETTINGS, Item.SAVE_BUTTON, AssertionState.STRICTLY, FieldState.READ_ONLY));
+                assertions.verifyFieldState(SettingsElement.SAVE_BUTTON, AssertionState.STRICTLY, FieldState.READ_ONLY));
         assertThatThrownBy(() ->
-                assertions.verifyFieldState(State.SETTINGS, Item.SAVE_BUTTON, AssertionState.STRICTLY, FieldState.EDITABLE))
+                assertions.verifyFieldState(SettingsElement.SAVE_BUTTON, AssertionState.STRICTLY, FieldState.EDITABLE))
                 .hasMessageContaining("should be editable");
     }
 
     @Test
-    void actionFlowRefusesAnItemMarkedNotClickableBeforeTouchingTheScreen() {
-        Clickable label = () -> false;
+    void setCheckedTapsUntilTheBoxReadsAsWanted() {
+        System.setProperty("platform", "android");
+        when(elementActions.find(LOCATOR)).thenReturn(element);
+        when(element.getAttribute("checked")).thenReturn("false", "true");
 
-        assertThatThrownBy(() -> new Actions(elementActions, resolver).tap(State.SETTINGS, label))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("is not clickable on screen SettingsScreen");
-        verifyNoInteractions(elementActions);
+        new Actions(elementActions).setChecked(SettingsElement.SAVE_BUTTON, true);
+
+        verify(elementActions, times(1)).click(LOCATOR);
+    }
+
+    @Test
+    void setCheckedLeavesABoxThatAlreadyReadsAsWanted() {
+        System.setProperty("platform", "android");
+        when(elementActions.find(LOCATOR)).thenReturn(element);
+        when(element.getAttribute("checked")).thenReturn("true");
+
+        new Actions(elementActions).setChecked(SettingsElement.SAVE_BUTTON, true);
+
+        verify(elementActions, never()).click(any(By.class));
     }
 
     @Test

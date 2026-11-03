@@ -9,11 +9,11 @@ sync, a fault-injecting proxy). Web and mobile follow the same design; only the 
 
 | | Web | Mobile |
 |---|---|---|
-| a view of the app | page — `BasePage` | screen — `BaseScreen` |
-| the list of views | `AppPage` enum | `AppScreen` enum |
-| the elements of one view | `PageElement` enum (accessible role + name) | `Clickable` enum (+ a locator per constant) |
-| view enum → view object | `BasePageResolver` | `BaseScreenResolver` |
-| actions / checks | `BaseActionFlow<P>` / `BaseAssertionFlow<P>` | `BaseActionFlow` / `BaseAssertionFlow` |
+| a view of the app | page — `BasePage` | screen — a plain class nesting its element enum |
+| the list of views | `AppPage` enum | your own enum, if your steps name screens |
+| the elements of one view | `PageElement` enum (accessible role + name) | `ScreenElement` enum nested in the screen (a locator per constant) |
+| view enum → view object | `BasePageResolver` | none: an element carries its own locator |
+| actions / checks | `BaseActionFlow<P>` / `BaseAssertionFlow<P>` | `BaseActionFlow` / `BaseAssertionFlow`, on the element alone |
 
 ## The idea in one minute
 
@@ -75,20 +75,14 @@ One thing to know: a scenario-scoped driver bean is a Spring proxy, and a proxy 
 ## How a step reaches the app
 
 ```
-"user taps Profile Save Button on Edit Profile screen"
-        │                               │
-        │  Cucumber parameter type      │  Cucumber parameter type
-        ▼                               ▼
-  EditProfileItem.PROFILE_SAVE_BUTTON   SettingsState.EDIT_PROFILE     (AppScreen / AppPage enum)
-        │                               │
-        │                               │  BaseScreenResolver / BasePageResolver
-        │                               ▼
-        │                         EditProfileScreen                    (BaseScreen / BasePage)
-        │                               │
-        └────────────► locator of the item on that view
-                                        │
-                                        ▼
-                               ElementActions.click                    (wait, act, fallbacks, logging)
+web:     "user clicks "Edit User" button on Users page"
+           │ parameter type → Pages.USERS ──BasePageResolver──► UsersPage
+           │ BaseElementResolver → UsersElement.EDIT_USER
+           └──► UsersPage.locator(EDIT_USER) ──► ElementActions.click
+
+mobile:  "user taps Profile Save Button on Edit Profile screen"
+           │ parameter type → EditProfileElement.PROFILE_SAVE_BUTTON (parsed from the Edit Profile screen's enum)
+           └──► PROFILE_SAVE_BUTTON.getLocator() ──► ElementActions.click  (wait, act, fallbacks, logging)
 ```
 
 The string becomes an enum through `EnumUtils`, which ignores case, spaces and dashes: `Profile Save Button`,
@@ -136,143 +130,90 @@ label**, so name constants the way you want them read in Gherkin.
 
 ## Mobile, step by step
 
-### 1. List a screen's elements
+### 1. One class per screen, with its elements
 
-One enum per screen, implementing `Clickable`. The flag says whether the element may be tapped; tapping a `false`
-one fails before the driver is touched, which catches a scenario tapping a label by mistake.
+One class per screen, nesting its element enum. Each constant carries its locator, so the screen class is the one
+place to look for an element and its locator.
+
+```java
+public class EditProfileScreen {
+
+    @Getter
+    @RequiredArgsConstructor
+    public enum EditProfileElement implements ScreenElement {
+        EDIT_PROFILE_TITLE(byTestId("edit-profile-title")),
+        PROFILE_EMAIL_INPUT(byTestId("edit-profile-email")),
+        PROFILE_SAVE_BUTTON(byTestId("edit-profile-save")),
+        PROFILE_SAVE_MESSAGE(byTestId("edit-profile-save-message"));
+
+        private final By locator;
+    }
+}
+```
+
+- `ScreenElement` carries one locator, built however your app is best found: here `TestIdLocators.byTestId`, a React
+  Native `testID` that matches on both Android and iOS. `DualLocatorElement` carries an Android and an iOS `By`, for
+  an app whose two builds name an element differently.
+- A constant whose locator needs logic (a platform's native alert, a child of another element) overrides
+  `getLocator()` in its own body. An element that differs per record (a row by id) is a method taking the key.
+- A screen that also reads or waits (a list of cards, say) holds `ElementActions` and is a bean your flows inject.
+
+### 2. Name the screens your steps use
+
+An enum whose constants name each screen's element enum lets a step say which screen an element is on, and parses
+the element from that screen's enum only, so a name needs to be unique on its screen alone:
 
 ```java
 @Getter
 @RequiredArgsConstructor
-public enum EditProfileItem implements Clickable {
-    EDIT_PROFILE_TITLE(false),
-    PROFILE_EMAIL_INPUT(false),
-    PROFILE_SAVE_BUTTON(true),
-    PROFILE_SAVE_MESSAGE(false);
+public enum Screens {
+    SETTINGS(SettingsScreen.SettingsElement.class),
+    EDIT_PROFILE(EditProfileScreen.EditProfileElement.class);
 
-    private final boolean clickable;
+    private final Class<? extends Enum<?>> elements;
 }
 ```
 
-### 2. Give each element its locator
+### 3. Wire the generic steps
 
-One class per screen, extending `BaseScreen`. The whole class is usually just this switch. A `switch` over the enum
-does not compile until every constant has a locator, so nothing can be forgotten.
-
-```java
-@Component
-@ScenarioScope
-public class EditProfileScreen extends BaseScreen {
-
-    public EditProfileScreen(ElementActions elementActions) {
-        super(elementActions);
-    }
-
-    @Override
-    public By resolve(Clickable item) {
-        return switch (cast(item, EditProfileItem.class)) {
-            case EDIT_PROFILE_TITLE -> title();
-            case PROFILE_EMAIL_INPUT -> byTestId("edit-profile-email");
-            case PROFILE_SAVE_BUTTON -> byTestId("edit-profile-save");
-            case PROFILE_SAVE_MESSAGE -> byTestId("edit-profile-save-message");
-        };
-    }
-
-    @Override
-    protected By title() {
-        return byTestId("edit-profile-title");
-    }
-}
-```
-
-`TestIdLocators.byTestId` matches a React Native `testID` on both Android and iOS, so one locator serves both
-platforms. Override `title()` / `closeButton()` only when the screen has one; the defaults throw rather than check
-the wrong element.
-
-### 3. List the screens
-
-One enum implementing `AppScreen`. Each constant names the screen class that draws it.
-
-```java
-@Getter
-@RequiredArgsConstructor
-public enum SettingsState implements AppScreen {
-    SETTINGS(SettingsScreen.class),
-    EDIT_PROFILE(EditProfileScreen.class);
-
-    private final Class<? extends BaseScreen> screenClass;
-}
-```
-
-### 4. Turn a screen constant into its screen object
-
-```java
-@Component
-@ScenarioScope
-@RequiredArgsConstructor
-public class ScreenResolver implements BaseScreenResolver {
-
-    private final ApplicationContext context;
-
-    @Override
-    public BaseScreen resolveScreen(AppScreen screen) {
-        return context.getBean(screen.getScreenClass());
-    }
-}
-```
-
-### 5. Wire the generic steps
-
-Parameter types turn the Gherkin words into your enums, and each step is a single call into a flow. `SettingsFlow`
-extends `BaseActionFlow` and `SettingsAssertions` extends `BaseAssertionFlow`; both start out empty.
+A parameter type turns the Gherkin words into the element, and each step is a single call into a flow.
+`AppFlow` extends `BaseActionFlow` and `AppAssertions` extends `BaseAssertionFlow`; both start out empty.
 
 ```java
 public class AppParameters {
 
-    @ParameterType("(?i)[a-zA-Z0-9 _-]+")
-    public SettingsState settingsState(String raw) {
-        return EnumUtils.parse(SettingsState.class, raw);
-    }
-
-    @ParameterType("(?i)[a-zA-Z0-9 _-]+")
-    public SettingsItem settingsItem(String raw) {
-        return EnumUtils.parseSealed(SettingsItem.class, raw);
+    @ParameterType("(?i)([a-zA-Z0-9 _-]+) on ([a-zA-Z0-9 _-]+) screen")
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public ScreenElement screenElement(String element, String screen) {
+        return (ScreenElement) EnumUtils.parse((Class) EnumUtils.parse(Screens.class, screen).getElements(), element);
     }
 }
 
 @RequiredArgsConstructor
-public class SettingsSteps {
+public class ScreenSteps {
 
-    private final SettingsFlow settingsFlow;
-    private final SettingsAssertions assertions;
+    private final AppFlow flow;
+    private final AppAssertions assertions;
 
-    @When("user taps {settingsItem} on {settingsState} screen")
-    public void userTaps(SettingsItem item, SettingsState screen) {
-        settingsFlow.tap(screen, item);
+    @When("user taps {screenElement}")
+    public void userTaps(ScreenElement element) {
+        flow.tap(element);
     }
 
-    @When("user sets {settingsItem} on {settingsState} screen as {string}")
-    public void userTypes(SettingsItem item, SettingsState screen, String value) {
-        settingsFlow.type(screen, item, value);
+    @When("user sets {screenElement} as {string}")
+    public void userTypes(ScreenElement element, String value) {
+        flow.type(element, value);
     }
 
-    @Then("the {settingsItem} on {settingsState} screen is {assertionState} {visibleState}")
-    public void isVisible(SettingsItem item, SettingsState screen, AssertionState assertion, VisibleState visible) {
-        assertions.verifyVisible(screen, item, assertion, visible);
+    @Then("the {screenElement} is {assertionState} {visibleState}")
+    public void isVisible(ScreenElement element, AssertionState assertion, VisibleState visible) {
+        assertions.verifyVisible(element, assertion, visible);
     }
 }
 ```
 
-### Many screens: group them with a sealed interface
-
-Once an app has dozens of screens, one parameter type per screen gets unwieldy. Group them instead: a sealed
-interface per area (`SettingsItem`), permitting one item enum per screen in it (`EditProfileItem`, `NotificationsItem`, …).
-`EnumUtils.parseSealed` finds the constant in whichever permitted enum has it, so one `{settingsItem}` parameter covers
-the whole area.
-
-The catch: **constant names must be unique across the group**. `parseSealed` returns the first match, so two screens
-with an `EMAIL_INPUT` would silently resolve to the same one. Prefix with the screen (`PROFILE_EMAIL_INPUT`,
-`LOGIN_EMAIL_INPUT`).
+A flow overrides `tap` or `type` for an element that needs more than a click, and adds the multi-step sequences a
+scenario needs (navigation, a form filled in one go).
 
 ## Shared vocabulary for both
 
@@ -298,9 +239,10 @@ soft failure is never reported.
   names only known at run time. Make it a `@ScenarioScope` bean so each scenario gets its own.
 - **Assertions — `Hardly` and `Softly`.** `Hardly` fails at once; `Softly` collects every failure of a scenario and
   reports them together on `assertAll()`. `AssertionState` picks between them from the Gherkin text.
-- **Logging and failure capture — `BaseFailureCatcher`, `PrettyPrinter`, `TestFailureContext`.** Every
-  `ElementActions` call runs through the catcher: one coloured line per action with its locator and duration, and on
-  failure the error is kept in `TestFailureContext` so a hook can attach a screenshot or details.
+- **Action logging — `FailureCatcher`, `PrettyPrinter`.** Every `ElementActions` call runs through the catcher,
+  which writes one line under the `ElementActions` logger once the action ends: the action, its duration, the locator
+  and the value typed (masked when the locator mentions a password). An action slower than 3 s logs at WARN, a failed
+  one at ERROR with the error's first line; the exception itself is rethrown unchanged.
 - **Utilities.**
   - `EnumUtils` — loose text to enum constant (`parse`, `parseSealed`, `tryParse`).
   - `TextUtils` — numbers, digits and dates out of UI text.
@@ -347,10 +289,12 @@ What not to write:
 | click, type, read text, check visible/enabled | `ElementActions` (web and mobile) |
 | tap only if it shows, tap until the next screen shows | mobile `ElementActions.clickIfVisible` / `clickIfAppears` / `clickUntilVisible` / `clickWhileVisible` |
 | wait for gone, for an animation to stop, with a custom timeout | mobile `DriverWait.absent` / `untilStable` / `visible(locator, timeout)` |
-| swipe, scroll to an element, long press, drag, keyboard, read the screen's texts | `AppInteractionUtils` |
-| open/close/restart the app, deep links, keys, lock, network, location, notifications, recording | `DeviceControlUtils` |
+| tap at a point, long press, double tap, drag, swipe, scroll to an element | `GestureUtils` |
+| open/close/restart the app, deep links, keys, the keyboard, lock, network, location, notifications, the app in front, recording | `DeviceUtils` |
+| read an element's or the whole screen's texts, an element's center or id | `ElementUtils` |
 | alerts, permission prompts, notifications, the camera app | `SystemActions`, with locators in `SystemLocators` |
-| device state without a session (adb / simctl) | `AdbUtils`, `SimctlUtils` |
+| device state without a session: permissions, app data, installed check, reboot, location | `AdbUtils` (Android), `XcrunUtils` (iOS: simctl for a simulator, devicectl for a real iPhone) |
+| refuse a call on the platform that has no such thing | `TestContext.requireAndroid` / `requireIos` |
 | call a backend API | a `BaseApiClient` subclass |
 | share a value between steps | your `BaseScenarioContext` subclass |
 | numbers, digits or dates out of UI text | `TextUtils` |

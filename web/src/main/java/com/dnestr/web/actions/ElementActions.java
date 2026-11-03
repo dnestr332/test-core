@@ -1,6 +1,6 @@
 package com.dnestr.web.actions;
 
-import com.dnestr.web.logs.FailureCatcher;
+import com.dnestr.web.logs.WebFailureCatcher;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.TimeoutError;
@@ -18,9 +18,8 @@ import static com.dnestr.base.actions.ElementAction.*;
 
 /**
  * Playwright-backed element actions used across page objects. Every action that touches a
- * {@link Locator} or the {@link Page} is routed through {@link FailureCatcher}, which logs the
- * step, times it, and — on failure — records the throwable to {@code TestFailureContext} before
- * rethrowing, so callers don't need their own try/catch for diagnostics.
+ * {@link Locator} or the {@link Page} is routed through {@link WebFailureCatcher}, which logs the
+ * action with its duration once it ends and rethrows a failure unchanged.
  * <p>
  * Used by composition, not inheritance: page objects hold an instance (typically passed into
  * {@code BasePage}'s constructor) rather than extending this class. Keep additions here generic
@@ -35,7 +34,7 @@ public class ElementActions {
             "el => el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement";
 
     private final Page page;
-    private final FailureCatcher failureCatcher;
+    private final WebFailureCatcher failureCatcher;
 
     /** Clicks the locator. Rethrows (after failure capture) if the click fails, e.g. the element is not clickable. */
     public void click(Locator locator) {
@@ -195,7 +194,7 @@ public class ElementActions {
      * {@link Page#waitForCondition}, this never throws on timeout — it simply returns {@code false} —
      * which makes it a good fit for flows that can resolve more than one way (e.g. a login that
      * either succeeds or shows an error toast), where the caller wants to inspect state afterward
-     * rather than branch on a caught exception. Not routed through {@link FailureCatcher}: a
+     * rather than branch on a caught exception. Not routed through {@link WebFailureCatcher}: a
      * timeout here is an expected outcome, not a test failure, so nothing is logged as an error.
      *
      * @param condition predicate evaluated by Playwright until it returns {@code true}

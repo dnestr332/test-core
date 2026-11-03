@@ -1,8 +1,8 @@
 package com.dnestr.mobile.actions;
 
 import com.dnestr.mobile.context.TestContext;
-import com.dnestr.mobile.utils.AppInteractionUtils;
-import com.dnestr.mobile.utils.MobileElementUtils;
+import com.dnestr.mobile.utils.GestureUtils;
+import com.dnestr.mobile.utils.ElementUtils;
 import com.dnestr.base.utils.WaitUtils;
 import io.appium.java_client.AppiumDriver;
 import lombok.RequiredArgsConstructor;
@@ -45,9 +45,9 @@ public class FallbackActions {
         return driver.findElements(locator);
     }
 
-    /** Finds the element directly via the driver (no wait) and returns its text via {@link MobileElementUtils#getActualText}. */
+    /** Finds the element directly via the driver (no wait) and returns its text via {@link ElementUtils#getActualText}. */
     public String readText(By locator) {
-        return MobileElementUtils.getActualText(driver.findElement(locator));
+        return ElementUtils.getActualText(driver.findElement(locator));
     }
 
     /** Blocks for a fixed 3 seconds to let a UI transition finish before {@link #relocate}/{@link #relocateList} are attempted. */
@@ -62,10 +62,10 @@ public class FallbackActions {
 
     /** Taps the geometric center of the element's bounding rect via raw coordinates, bypassing Selenium's click entirely — the last-resort fallback when even a native platform click fails. */
     public void tapByElementCenter(By locator) {
-        Point center = MobileElementUtils.centerOf(driver.findElement(locator));
+        Point center = ElementUtils.centerOf(driver.findElement(locator));
 
         log.info("Fallback tap at center ({}, {}) for {}", center.getX(), center.getY(), locator);
-        AppInteractionUtils.tapByCoordinates(center.getX(), center.getY(), driver);
+        GestureUtils.tapByCoordinates(center.getX(), center.getY(), driver);
     }
 
     /**
@@ -91,10 +91,10 @@ public class FallbackActions {
 
         if (TestContext.isAndroid()) {
             driver.executeScript("mobile: clickGesture", Map.of(
-                    "elementId", MobileElementUtils.referenceId(el)
+                    "elementId", ElementUtils.referenceId(el)
             ));
         } else {
-            Point center = MobileElementUtils.centerOf(el);
+            Point center = ElementUtils.centerOf(el);
             driver.executeScript("mobile: tap", Map.of(
                     "x", center.getX(),
                     "y", center.getY()
