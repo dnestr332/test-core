@@ -16,7 +16,7 @@ This repository is a Maven multi-module project:
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `5.0.0`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `5.0.1`):
 
 ```xml
 <repositories>
@@ -30,7 +30,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332.test-core</groupId>
         <artifactId>base</artifactId>
-        <version>5.0.0</version>
+        <version>5.0.1</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -62,7 +62,10 @@ mvn clean install -DskipTests
   mvn test -pl base
   ```
 
-# 5.0.0
+# 5.0.1
+
+5.0.0 was tagged but never built on JitPack (its image had a Maven too old for the compiler plugin); 5.0.1 is that
+release, built with Maven 3.9.9.
 
 ## Breaking changes
 
