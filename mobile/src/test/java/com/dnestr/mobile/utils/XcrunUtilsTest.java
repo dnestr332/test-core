@@ -60,6 +60,36 @@ class XcrunUtilsTest {
         try (MockedStatic<ProcessUtils> process = mockStatic(ProcessUtils.class)) {
             process.when(() -> ProcessUtils.run("xcrun", "simctl", "appinfo", "udid", "com.app")).thenReturn(List.of(
                     "An error was encountered processing the command (domain=NSPOSIXErrorDomain, code=2)"));
+            process.when(() -> ProcessUtils.run("xcrun", "simctl", "get_app_container", "udid", "com.app", "app"))
+                    .thenReturn(List.of("An error was encountered processing the command (domain=NSPOSIXErrorDomain, code=2)"));
+
+            assertThat(XcrunUtils.getIosSimulatorAppVersion("udid", "com.app")).isEmpty();
+        }
+    }
+
+    /** What Xcode 26.5's simctl printed on CI for an installed, running app: every key but the version. */
+    @Test
+    void getIosSimulatorAppVersionReadsTheInfoPlistWhenAppinfoLeavesTheVersionOut() {
+        try (MockedStatic<ProcessUtils> process = mockStatic(ProcessUtils.class)) {
+            process.when(() -> ProcessUtils.run("xcrun", "simctl", "appinfo", "udid", "com.app")).thenReturn(List.of(
+                    "{", "    CFBundleIdentifier = \"com.app\";", "    CFBundleName = App;", "    CFBundleVersion = 1;", "}"));
+            process.when(() -> ProcessUtils.run("xcrun", "simctl", "get_app_container", "udid", "com.app", "app"))
+                    .thenReturn(List.of("/sim/Bundle/Application/X/App.app"));
+            process.when(() -> ProcessUtils.run("/usr/libexec/PlistBuddy", "-c", "Print CFBundleShortVersionString",
+                    "/sim/Bundle/Application/X/App.app/Info.plist")).thenReturn(List.of("5.0.0"));
+
+            assertThat(XcrunUtils.getIosSimulatorAppVersion("udid", "com.app")).contains("5.0.0");
+        }
+    }
+
+    @Test
+    void getIosSimulatorAppVersionIsEmptyWhenTheInfoPlistHasNoVersion() {
+        try (MockedStatic<ProcessUtils> process = mockStatic(ProcessUtils.class)) {
+            process.when(() -> ProcessUtils.run("xcrun", "simctl", "appinfo", "udid", "com.app")).thenReturn(List.of("{", "}"));
+            process.when(() -> ProcessUtils.run("xcrun", "simctl", "get_app_container", "udid", "com.app", "app"))
+                    .thenReturn(List.of("/sim/App.app"));
+            process.when(() -> ProcessUtils.run("/usr/libexec/PlistBuddy", "-c", "Print CFBundleShortVersionString",
+                    "/sim/App.app/Info.plist")).thenReturn(List.of("Print: Entry, \":CFBundleShortVersionString\", Does Not Exist"));
 
             assertThat(XcrunUtils.getIosSimulatorAppVersion("udid", "com.app")).isEmpty();
         }

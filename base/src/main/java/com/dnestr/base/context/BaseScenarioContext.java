@@ -1,6 +1,7 @@
 package com.dnestr.base.context;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -80,6 +81,47 @@ public abstract class BaseScenarioContext<K> {
         return getList(dynamicContext, key);
     }
 
+    /**
+     * Puts {@code value} under {@code mapKey} in the map stored under the typed key {@code key}, atomically creating
+     * and storing a new insertion-ordered map first if none exists yet. A later put for the same {@code mapKey} wins.
+     *
+     * @throws ClassCastException if {@code key} already holds a value that isn't a {@link Map}
+     */
+    public <MK, V> void putToMap(K key, MK mapKey, V value) {
+        putToMap(context, key, mapKey, value, false);
+    }
+
+    /** {@link #putToMap(Object, Object, Object)} for the dynamic key {@code key}. */
+    public <MK, V> void putToMap(String key, MK mapKey, V value) {
+        putToMap(dynamicContext, key, mapKey, value, false);
+    }
+
+    /**
+     * As {@link #putToMap(Object, Object, Object)}, but the first value put for {@code mapKey} wins - for remembering
+     * a record's original state before a scenario changes it, possibly more than once.
+     */
+    public <MK, V> void putToMapIfAbsent(K key, MK mapKey, V value) {
+        putToMap(context, key, mapKey, value, true);
+    }
+
+    /** {@link #putToMapIfAbsent(Object, Object, Object)} for the dynamic key {@code key}. */
+    public <MK, V> void putToMapIfAbsent(String key, MK mapKey, V value) {
+        putToMap(dynamicContext, key, mapKey, value, true);
+    }
+
+    /**
+     * Returns the map stored under the typed key {@code key} (the live map - changes to it are stored), or a new
+     * empty, unstored map if absent. Unchecked cast to {@code Map<MK, V>} - callers must know the actual types.
+     */
+    public <MK, V> Map<MK, V> getMap(K key) {
+        return getMap(context, key);
+    }
+
+    /** {@link #getMap(Object)} for the dynamic key {@code key}. */
+    public <MK, V> Map<MK, V> getMap(String key) {
+        return getMap(dynamicContext, key);
+    }
+
     /** Whether a value is currently stored under the typed key {@code key}. */
     public boolean contains(K key) {
         return context.containsKey(key);
@@ -114,5 +156,20 @@ public abstract class BaseScenarioContext<K> {
     @SuppressWarnings("unchecked")
     private static <M, T> List<T> getList(Map<M, Object> map, M key) {
         return (List<T>) Optional.ofNullable(map.get(key)).orElseGet(ArrayList::new);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <M, MK, V> void putToMap(Map<M, Object> map, M key, MK mapKey, V value, boolean ifAbsent) {
+        Map<MK, V> values = (Map<MK, V>) map.computeIfAbsent(key, k -> new LinkedHashMap<>());
+        if (ifAbsent) {
+            values.putIfAbsent(mapKey, value);
+        } else {
+            values.put(mapKey, value);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <M, MK, V> Map<MK, V> getMap(Map<M, Object> map, M key) {
+        return (Map<MK, V>) Optional.ofNullable(map.get(key)).orElseGet(LinkedHashMap::new);
     }
 }

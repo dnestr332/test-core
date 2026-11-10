@@ -10,13 +10,13 @@ Multi-module test automation core providing base utilities and specialized frame
 
 This repository is a Maven multi-module project:
 
-- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API request spec (`BaseApiSpec`), scenario context, logging (`FailureCatcher`, `PrettyPrinter`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
+- **`base`**: Shared core utilities including custom assertions (`Softly`, `Hardly`), a base API request spec (`BaseApiSpec`), scenario context, logging (`FailureCatcher`), common UI states (`FieldState`, `ButtonState`, `ToggleState`, `VisibleState`, `AssertionState`), and a BDD feature-file sync engine that syncs tagged Gherkin scenarios to TestRail and Azure DevOps.
 - **`web`**: Web automation framework built on top of [Microsoft Playwright](https://playwright.dev/java/).
 - **`mobile`**: Mobile automation framework built on top of [Appium](https://appium.io/) and Selenium, supporting both Android and iOS.
 
 ## Consuming this library
 
-Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `5.0.1`):
+Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the module(s) you need as a dependency, pinned to a released tag (e.g. `5.1.0`):
 
 ```xml
 <repositories>
@@ -30,7 +30,7 @@ Published via [JitPack](https://jitpack.io/). Add the JitPack repository and the
     <dependency>
         <groupId>com.github.dnestr332.test-core</groupId>
         <artifactId>base</artifactId>
-        <version>5.0.1</version>
+        <version>5.1.0</version>
     </dependency>
     <!-- and/or web / mobile -->
 </dependencies>
@@ -61,6 +61,40 @@ mvn clean install -DskipTests
   ```bash
   mvn test -pl base
   ```
+
+# 5.1.0
+
+## Breaking changes
+
+### Base Core
+- `TextUtils.getStringAsDoubleReplaceCommas` is gone: `getStringAsDouble` reads thousands separators
+
+### Base Core / Web Core / Mobile Core
+- `PrettyPrinter`, `WebPrettyPrinter` and `MobilePrettyPrinter` are gone: `FailureCatcher` writes the action line
+  itself and a subclass implements `describe(locator)`. `WebFailureCatcher` and `MobileFailureCatcher` take no
+  constructor argument (`new MobileFailureCatcher()`), so a Spring config drops its printer bean
+
+## Base Core
+
+### Additions
+- `BaseScenarioContext.putToMap` / `putToMapIfAbsent` / `getMap`, the map counterpart of `addToList` / `getList`, for typed and dynamic keys; `putToMapIfAbsent` keeps the first value, for remembering a record's original state
+
+### Changes
+- `TextUtils.getStringAsDouble` reads thousands separators (`"-1,234.56"` → `-1234.56`); a comma counts only before
+  a group of three digits
+- A `WaitUtils` timeout names what was awaited: `waitUntil`, `waitUntilIgnoringExceptions` and `waitForValue` pass the
+  message to Awaitility, as `waitUntilOnCallerThread` already did
+- Action log lines print the action name as declared (`CLICK`, not `click`)
+
+## Mobile Core
+
+### Changes
+- `GestureUtils.dragAndDrop` with a zero hold sends no pause before the move; the gestures and
+  `DeviceUtils.openIosNotificationCenter` share one pointer builder
+- A fallback warning names the action with spaces (`LONG PRESS`, not `long_press`)
+
+### Fixes
+- `XcrunUtils.getIosSimulatorAppVersion` reads the app bundle's Info.plist when `simctl appinfo` gives no version: Xcode 26's `simctl` leaves `CFBundleShortVersionString` out, so an installed app read as not installed
 
 # 5.0.1
 

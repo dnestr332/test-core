@@ -3,8 +3,10 @@ package com.dnestr.base.utils;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionFactory;
 
 import java.time.Duration;
+import java.util.concurrent.Callable;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -41,14 +43,7 @@ public class WaitUtils {
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
     public void waitUntil(BooleanSupplier condition, long seconds, long pollingMillis, String message) {
-        Awaitility.await()
-                .pollInterval(Duration.ofMillis(pollingMillis))
-                .atMost(Duration.ofSeconds(seconds))
-                .until(() -> {
-                    boolean result = condition.getAsBoolean();
-                    if (!result) logWaiting(message);
-                    return result;
-                });
+        polling(message, seconds, pollingMillis).until(logged(condition, message));
     }
 
     /**
@@ -60,15 +55,7 @@ public class WaitUtils {
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
     public void waitUntilIgnoringExceptions(BooleanSupplier condition, long seconds, String message) {
-        Awaitility.await()
-                .ignoreExceptions()
-                .pollInterval(Duration.ofMillis(DEFAULT_POLLING))
-                .atMost(Duration.ofSeconds(seconds))
-                .until(() -> {
-                    boolean result = condition.getAsBoolean();
-                    if (!result) logWaiting(message);
-                    return result;
-                });
+        polling(message, seconds, DEFAULT_POLLING).ignoreExceptions().until(logged(condition, message));
     }
 
     /**
@@ -79,10 +66,8 @@ public class WaitUtils {
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
     public <T> T waitForValue(Supplier<T> supplier, Predicate<T> condition, long seconds, String message) {
-        return Awaitility.await()
+        return polling(message, seconds, DEFAULT_POLLING)
                 .ignoreExceptions()
-                .pollInterval(Duration.ofMillis(DEFAULT_POLLING))
-                .atMost(Duration.ofSeconds(seconds))
                 .until(() -> {
                     T value = supplier.get();
                     if (!condition.test(value)) {
@@ -105,15 +90,9 @@ public class WaitUtils {
      * @throws org.awaitility.core.ConditionTimeoutException if the timeout is reached
      */
     public void waitUntilOnCallerThread(BooleanSupplier condition, long seconds, long pollingMillis, String message) {
-        Awaitility.await(message)
+        polling(message, seconds, pollingMillis)
                 .pollInSameThread()
-                .pollInterval(Duration.ofMillis(pollingMillis))
-                .atMost(Duration.ofSeconds(seconds))
-                .until(() -> {
-                    boolean result = condition.getAsBoolean();
-                    if (!result) logWaiting(message);
-                    return result;
-                });
+                .until(logged(condition, message));
     }
 
     /** Blocks the current thread for {@code seconds}. Prefer polling ({@link #waitUntil}) over a fixed sleep wherever the condition being waited on can be expressed as one. */
@@ -135,6 +114,21 @@ public class WaitUtils {
             Thread.currentThread().interrupt();
             log.warn("Sleep interrupted", e);
         }
+    }
+
+    /** Named after {@code message}, so a timeout says what was awaited. */
+    private ConditionFactory polling(String message, long seconds, long pollingMillis) {
+        return Awaitility.await(message)
+                .pollInterval(Duration.ofMillis(pollingMillis))
+                .atMost(Duration.ofSeconds(seconds));
+    }
+
+    private Callable<Boolean> logged(BooleanSupplier condition, String message) {
+        return () -> {
+            boolean result = condition.getAsBoolean();
+            if (!result) logWaiting(message);
+            return result;
+        };
     }
 
     private void logWaiting(String message) {

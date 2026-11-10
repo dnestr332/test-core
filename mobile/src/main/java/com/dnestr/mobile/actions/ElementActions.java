@@ -368,6 +368,7 @@ public class ElementActions {
     //endregion
 
     private void logFallback(ElementAction action, ActionStrategy strategy, By locator) {
-        log.warn("{} fell back to {} for {}", action.name().toLowerCase(), strategy, locator);
+        String actionName = action.name().replace("_", " ");
+        log.warn("{} fell back to {} for {}", actionName, strategy, locator);
     }
 }

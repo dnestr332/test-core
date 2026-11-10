@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -144,5 +145,68 @@ class BaseScenarioContextTest {
 
         assertThat(context.<String>getList(Key.USER)).containsExactly("typed");
         assertThat(context.<String>getList("USER")).containsExactly("dynamic");
+    }
+
+    @Test
+    void getMap_returnsEmptyMap_whenKeyAbsent() {
+        assertThat(context.<String, Integer>getMap(Key.USER)).isEmpty();
+    }
+
+    @Test
+    void putToMap_createsMapOnFirstCall_andLaterPutWins() {
+        context.putToMap(Key.USER, "alice", 1);
+        context.putToMap(Key.USER, "alice", 2);
+
+        assertThat(context.<String, Integer>getMap(Key.USER)).containsExactly(Map.entry("alice", 2));
+    }
+
+    @Test
+    void putToMapIfAbsent_keepsTheFirstValue() {
+        context.putToMapIfAbsent(Key.USER, "alice", "original");
+        context.putToMapIfAbsent(Key.USER, "alice", "changed");
+
+        assertThat(context.<String, String>getMap(Key.USER)).containsExactly(Map.entry("alice", "original"));
+    }
+
+    @Test
+    void putToMap_keepsInsertionOrder() {
+        context.putToMap(Key.USER, "carol", 3);
+        context.putToMap(Key.USER, "alice", 1);
+        context.putToMap(Key.USER, "bob", 2);
+
+        assertThat(context.<String, Integer>getMap(Key.USER).keySet()).containsExactly("carol", "alice", "bob");
+    }
+
+    @Test
+    void getMap_whenKeyAbsent_doesNotStoreTheEmptyMap() {
+        context.<String, Integer>getMap(Key.USER).put("alice", 1);
+
+        assertThat(context.contains(Key.USER)).isFalse();
+    }
+
+    @Test
+    void getMap_returnsLiveMap_soMutationsAreStored() {
+        context.putToMap(Key.USER, "alice", 1);
+
+        context.<String, Integer>getMap(Key.USER).put("bob", 2);
+
+        assertThat(context.<String, Integer>getMap(Key.USER)).containsOnlyKeys("alice", "bob");
+    }
+
+    @Test
+    void putToMap_whenKeyHoldsNonMap_throwsClassCastException() {
+        context.set(Key.USER, "alice");
+
+        assertThatThrownBy(() -> context.putToMap(Key.USER, "bob", 2))
+                .isInstanceOf(ClassCastException.class);
+    }
+
+    @Test
+    void dynamicStringKey_putToMapAndGetMap() {
+        context.putToMap("ids", "a", 1);
+        context.putToMapIfAbsent("ids", "a", 9);
+
+        assertThat(context.<String, Integer>getMap("ids")).containsExactly(Map.entry("a", 1));
+        assertThat(context.<String, Integer>getMap(Key.USER)).isEmpty();
     }
 }

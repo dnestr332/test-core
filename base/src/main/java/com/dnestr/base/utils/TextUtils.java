@@ -16,32 +16,20 @@ import java.util.regex.Pattern;
 @UtilityClass
 public class TextUtils {
 
+    private final Pattern NUMBER = Pattern.compile("-?(?:\\d{1,3}(?:,\\d{3})+(?!\\d)|\\d+)(?:\\.\\d+)?");
     /** A year letter outside quoted literal text; a defaulted year would clash with a parsed one. */
     private final Pattern HAS_YEAR = Pattern.compile("^(?:[^']|'[^']*')*?[yuY]");
 
     /**
-     * Finds and parses the first (optionally negative, optionally decimal) number in {@code raw},
-     * e.g. {@code "Price: -42.5 USD"} → {@code -42.5}.
+     * Finds and parses the first number in {@code raw}: optionally negative, optionally decimal, with or without
+     * thousands separators, e.g. {@code "Balance: -1,234.56 USD"} → {@code -1234.56}. A comma only counts as a
+     * separator before a group of three digits, so {@code "3, 4"} reads as {@code 3}.
      *
      * @throws IllegalArgumentException if {@code raw} contains no numeric substring
      */
     public double getStringAsDouble(String raw) {
-        Matcher matcher = Pattern.compile("-?\\d+(\\.\\d+)?").matcher(raw);
-        if (matcher.find()) return Double.parseDouble(matcher.group());
-        throw new IllegalArgumentException("No numeric value found in: " + raw);
-    }
-
-    /**
-     * Like {@link #getStringAsDouble}, but for numbers written with thousands separators, e.g.
-     * {@code "1,234.56"} → {@code 1234.56}. Does not handle a leading minus sign.
-     *
-     * @throws IllegalArgumentException if {@code raw} contains no numeric substring
-     */
-    public double getStringAsDoubleReplaceCommas(String raw) {
-        Matcher matcher = Pattern.compile("[\\d,]+(?:\\.\\d+)?").matcher(raw);
-        if (matcher.find()) {
-            return Double.parseDouble(matcher.group().replace(",", ""));
-        }
+        Matcher matcher = NUMBER.matcher(raw);
+        if (matcher.find()) return Double.parseDouble(matcher.group().replace(",", ""));
         throw new IllegalArgumentException("No numeric value found in: " + raw);
     }
 
@@ -56,7 +44,7 @@ public class TextUtils {
         if (at < 0) {
             throw new IllegalArgumentException("No '%s' in: %s".formatted(marker, raw));
         }
-        return getStringAsDoubleReplaceCommas(raw.substring(at + 1));
+        return getStringAsDouble(raw.substring(at + 1));
     }
 
     /**

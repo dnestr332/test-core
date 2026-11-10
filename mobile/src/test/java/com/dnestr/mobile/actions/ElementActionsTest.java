@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.openqa.selenium.ElementNotInteractableException;
 import com.dnestr.mobile.context.TestContext;
 import com.dnestr.mobile.logs.MobileFailureCatcher;
-import com.dnestr.mobile.logs.MobilePrettyPrinter;
 import com.dnestr.mobile.waits.DriverWait;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +44,7 @@ class ElementActionsTest {
     @BeforeEach
     void setUp() {
         System.setProperty("platform", "ANDROID");
-        MobileFailureCatcher failureCatcher = new MobileFailureCatcher(new MobilePrettyPrinter());
+        MobileFailureCatcher failureCatcher = new MobileFailureCatcher();
         elementActions = new ElementActions(driverWait, fallbackActions, failureCatcher);
     }
 

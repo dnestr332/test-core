@@ -29,6 +29,7 @@ public class XcrunUtils {
     private final Duration BOOT_TIMEOUT = Duration.ofMinutes(3);
     private final Duration DEVICECTL_TIMEOUT = Duration.ofSeconds(60);
     private final Pattern SHORT_VERSION = Pattern.compile("CFBundleShortVersionString\\s*=\\s*\"?([^\";]+)\"?;");
+    private final Pattern PLIST_VERSION = Pattern.compile("[0-9][0-9A-Za-z.\\-]*");
 
     /** A simulator as {@code simctl} lists it, with the iOS version of its runtime. */
     public record IosSimulator(String udid, String name, String platformVersion) {}
@@ -51,13 +52,25 @@ public class XcrunUtils {
         return simulators;
     }
 
-    /** The version ({@code CFBundleShortVersionString}) of the app installed on the simulator; empty when it is not installed. */
+    /**
+     * The version ({@code CFBundleShortVersionString}) of the app installed on the simulator; empty when it is not
+     * installed. Xcode 26's {@code simctl appinfo} leaves the version out, so the bundle's Info.plist is read then.
+     */
     public Optional<String> getIosSimulatorAppVersion(String udid, String bundleId) {
         for (String line : ProcessUtils.run("xcrun", "simctl", "appinfo", udid, bundleId)) {
             Matcher version = SHORT_VERSION.matcher(line);
             if (version.find()) return Optional.of(version.group(1).trim());
         }
-        return Optional.empty();
+        return getIosSimulatorInfoPlistVersion(udid, bundleId);
+    }
+
+    private Optional<String> getIosSimulatorInfoPlistVersion(String udid, String bundleId) {
+        List<String> bundle = ProcessUtils.run("xcrun", "simctl", "get_app_container", udid, bundleId, "app");
+        if (bundle.size() != 1 || !bundle.getFirst().startsWith("/")) return Optional.empty();
+        List<String> version = ProcessUtils.run("/usr/libexec/PlistBuddy", "-c", "Print CFBundleShortVersionString",
+                bundle.getFirst() + "/Info.plist");
+        return version.size() == 1 && PLIST_VERSION.matcher(version.getFirst().trim()).matches()
+                ? Optional.of(version.getFirst().trim()) : Optional.empty();
     }
 
     /**

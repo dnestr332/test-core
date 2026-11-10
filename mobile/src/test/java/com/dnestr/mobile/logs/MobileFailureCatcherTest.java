@@ -11,19 +11,19 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** A {@code By} reads as {@code strategy=value} in an action line. */
-class MobilePrettyPrinterTest {
+class MobileFailureCatcherTest {
 
-    private final MobilePrettyPrinter printer = new MobilePrettyPrinter();
+    private final MobileFailureCatcher catcher = new MobileFailureCatcher();
 
     @Test
     void aSeleniumLocatorReadsAsStrategyEqualsValue() {
-        assertThat(printer.describe(By.id("submit-button"))).isEqualTo("id=submit-button");
-        assertThat(printer.describe(By.xpath("//a[@title='x: y']"))).isEqualTo("xpath=//a[@title='x: y']");
+        assertThat(catcher.describe(By.id("submit-button"))).isEqualTo("id=submit-button");
+        assertThat(catcher.describe(By.xpath("//a[@title='x: y']"))).isEqualTo("xpath=//a[@title='x: y']");
     }
 
     @Test
     void anAppiumLocatorReadsTheSameWay() {
-        assertThat(printer.describe(AppiumBy.accessibilityId("Menu"))).isEqualTo("accessibilityId=Menu");
+        assertThat(catcher.describe(AppiumBy.accessibilityId("Menu"))).isEqualTo("accessibilityId=Menu");
     }
 
     @Test
@@ -40,6 +40,6 @@ class MobilePrettyPrinterTest {
             }
         };
 
-        assertThat(printer.describe(locator)).isEqualTo("custom");
+        assertThat(catcher.describe(locator)).isEqualTo("custom");
     }
 }

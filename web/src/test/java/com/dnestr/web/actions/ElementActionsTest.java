@@ -1,7 +1,6 @@
 package com.dnestr.web.actions;
 
 import com.dnestr.web.logs.WebFailureCatcher;
-import com.dnestr.web.logs.WebPrettyPrinter;
 import com.microsoft.playwright.Keyboard;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -39,7 +38,7 @@ class ElementActionsTest {
 
     @BeforeEach
     void setUp() {
-        actions = new ElementActions(page, new WebFailureCatcher(new WebPrettyPrinter()));
+        actions = new ElementActions(page, new WebFailureCatcher());
     }
 
     @Test

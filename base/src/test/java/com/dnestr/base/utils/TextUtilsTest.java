@@ -32,6 +32,20 @@ class TextUtilsTest {
     }
 
     @Test
+    void getStringAsDouble_readsThousandsSeparators() {
+        assertThat(TextUtils.getStringAsDouble("Total: $1,234,567.89")).isEqualTo(1234567.89);
+        assertThat(TextUtils.getStringAsDouble("Balance: -1,234.56 USD")).isEqualTo(-1234.56);
+    }
+
+    @Test
+    void getStringAsDouble_treatsACommaNotBeforeThreeDigitsAsText() {
+        assertThat(TextUtils.getStringAsDouble("3, 4")).isEqualTo(3.0);
+        assertThat(TextUtils.getStringAsDouble("1,2")).isEqualTo(1.0);
+        assertThat(TextUtils.getStringAsDouble("1,2345")).isEqualTo(1.0);
+        assertThat(TextUtils.getStringAsDouble("12345,678")).isEqualTo(12345.0);
+    }
+
+    @Test
     void getStringAsDouble_noNumericValue_throws() {
         assertThatThrownBy(() -> TextUtils.getStringAsDouble("no digits here"))
                 .isInstanceOf(IllegalArgumentException.class)

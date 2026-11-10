@@ -13,12 +13,12 @@ import org.openqa.selenium.Point;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Interaction;
 import org.openqa.selenium.interactions.Pause;
 import org.openqa.selenium.interactions.PointerInput;
 import org.openqa.selenium.interactions.Sequence;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
@@ -41,86 +41,56 @@ public class GestureUtils {
     /** Performs a single tap at the given viewport coordinates via a synthetic touch pointer gesture. */
     public void tapByCoordinates(int x, int y, AppiumDriver driver) {
         log.info("Tapping coordinates ({}, {})", x, y);
-        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-
-        Sequence tap = new Sequence(finger, 0)
-                .addAction(finger.createPointerMove(Duration.ZERO,
-                        PointerInput.Origin.viewport(), x, y))
-                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-                .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-
-        driver.perform(Collections.singletonList(tap));
+        PointerInput finger = finger();
+        driver.perform(List.of(touchDown(finger, x, y).addAction(lift(finger))));
     }
 
     /** Taps near the top-center of the screen (10% down from the top) — e.g. for dismissing a top banner or reaching a safe-area control. */
     public void tapTopSafeArea(AppiumDriver driver) {
         Dimension size = driver.manage().window().getSize();
-
-        int x = size.getWidth() / 2;
-        int y = (int)(size.getHeight() * 0.1);
-
-        tapByCoordinates(x, y, driver);
+        tapByCoordinates(size.getWidth() / 2, (int) (size.getHeight() * 0.1), driver);
     }
 
     /** Taps a point unlikely to hit any interactive element (center-horizontal, upper-quarter vertical) — e.g. to dismiss a keyboard/popover by tapping "outside" it. */
     public void tapNeutralArea(AppiumDriver driver) {
-        int w = driver.manage().window().getSize().getWidth();
-        int h = driver.manage().window().getSize().getHeight();
-
-        int x = w / 2;
-        int y = h / 4;
-
-        tapByCoordinates(x, y, driver);
+        Dimension size = driver.manage().window().getSize();
+        tapByCoordinates(size.getWidth() / 2, size.getHeight() / 4, driver);
     }
 
     /** Taps the center of {@code element} twice, 150 ms apart, as one gesture. */
     public void doubleTap(WebElement element, AppiumDriver driver) {
         Point center = ElementUtils.centerOf(element);
         log.info("Double-tapping ({}, {})", center.getX(), center.getY());
-        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-
-        Sequence taps = new Sequence(finger, 0)
-                .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), center.getX(), center.getY()))
-                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-                .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()))
+        PointerInput finger = finger();
+        driver.perform(List.of(touchDown(finger, center.getX(), center.getY())
+                .addAction(lift(finger))
                 .addAction(new Pause(finger, Duration.ofMillis(150)))
                 .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-                .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-
-        driver.perform(List.of(taps));
+                .addAction(lift(finger))));
     }
 
     /** Presses and holds the center of {@code element} for {@code hold} before releasing, via a synthetic touch pointer gesture — e.g. to open a context menu or start a drag. */
     public void longPress(WebElement element, Duration hold, AppiumDriver driver) {
         Point center = ElementUtils.centerOf(element);
         log.info("Long-pressing ({}, {}) for {} ms", center.getX(), center.getY(), hold.toMillis());
-        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-
-        Sequence press = new Sequence(finger, 0)
-                .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), center.getX(), center.getY()))
-                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
+        PointerInput finger = finger();
+        driver.perform(List.of(touchDown(finger, center.getX(), center.getY())
                 .addAction(new Pause(finger, hold))
-                .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-
-        driver.perform(List.of(press));
+                .addAction(lift(finger))));
     }
 
     /**
      * Presses at {@code from}, holds for {@code hold}, moves to {@code to} over {@code move}, then releases — a
-     * reorderable list only picks a row up after the hold.
+     * reorderable list only picks a row up after the hold. A zero {@code hold} makes it a plain drag.
      */
     public void dragAndDrop(Point from, Point to, Duration hold, Duration move, AppiumDriver driver) {
         log.info("Dragging ({}, {}) to ({}, {})", from.getX(), from.getY(), to.getX(), to.getY());
-        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-
-        Sequence drag = new Sequence(finger, 0)
-                .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), from.getX(), from.getY()))
-                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-                .addAction(new Pause(finger, hold))
-                .addAction(finger.createPointerMove(move, PointerInput.Origin.viewport(), to.getX(), to.getY()))
-                .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-
-        driver.perform(List.of(drag));
+        PointerInput finger = finger();
+        Sequence drag = touchDown(finger, from.getX(), from.getY());
+        if (!hold.isZero()) {
+            drag.addAction(new Pause(finger, hold));
+        }
+        driver.perform(List.of(drag.addAction(moveTo(finger, move, to.getX(), to.getY())).addAction(lift(finger))));
     }
 
     /**
@@ -140,19 +110,32 @@ public class GestureUtils {
         int step = box.getWidth() * 3 / 4 / strokes;
         int top = box.getY() + box.getHeight() / 3;
         int bottom = box.getY() + box.getHeight() * 2 / 3;
-        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
+        PointerInput finger = finger();
 
-        Sequence stroke = new Sequence(finger, 0)
-                .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), left, top))
-                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
-
+        Sequence stroke = touchDown(finger, left, top);
         for (int i = 1; i <= strokes; i++) {
-            stroke.addAction(finger.createPointerMove(Duration.ofMillis(150), PointerInput.Origin.viewport(),
-                    left + i * step, i % 2 == 0 ? top : bottom)
-            );
+            stroke.addAction(moveTo(finger, Duration.ofMillis(150), left + i * step, i % 2 == 0 ? top : bottom));
         }
-        stroke.addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-        driver.perform(List.of(stroke));
+        driver.perform(List.of(stroke.addAction(lift(finger))));
+    }
+
+    private PointerInput finger() {
+        return new PointerInput(PointerInput.Kind.TOUCH, "finger");
+    }
+
+    /** A gesture that has put {@code finger} down at ({@code x}, {@code y}); the caller adds the rest and lifts it. */
+    private Sequence touchDown(PointerInput finger, int x, int y) {
+        return new Sequence(finger, 0)
+                .addAction(moveTo(finger, Duration.ZERO, x, y))
+                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()));
+    }
+
+    private Interaction moveTo(PointerInput finger, Duration duration, int x, int y) {
+        return finger.createPointerMove(duration, PointerInput.Origin.viewport(), x, y);
+    }
+
+    private Interaction lift(PointerInput finger) {
+        return finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg());
     }
     //endregion
 

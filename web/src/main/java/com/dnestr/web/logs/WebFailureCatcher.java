@@ -8,8 +8,9 @@ import java.util.function.Supplier;
 
 /**
  * Web (Playwright {@link Locator}) specialization of {@code FailureCatcher}: every action in
- * {@code ElementActions} routes through {@link #withFailureCapture}, which logs it through {@link WebPrettyPrinter}
- * once it ends and rethrows a failure unchanged.
+ * {@code ElementActions} routes through {@link #withFailureCapture}, which logs it once it ends and rethrows a
+ * failure unchanged. A locator reads as its selector, without Playwright's {@code Locator@} and {@code internal:}
+ * prefixes, e.g. {@code role=button[name="Save"i]}.
  * <p>
  * The three overloads below just fill in {@code null} for whichever of {@code locator}/{@code details}
  * doesn't apply to a given action (e.g. {@link #withFailureCapture(ElementAction, Runnable)} for a
@@ -17,8 +18,13 @@ import java.util.function.Supplier;
  */
 public class WebFailureCatcher extends FailureCatcher<Locator> {
 
-    public WebFailureCatcher(WebPrettyPrinter prettyPrinter) {
-        super(prettyPrinter);
+    @Override
+    protected String describe(Locator locator) {
+        String selector = locator.toString();
+        if (selector.startsWith("Locator@")) {
+            selector = selector.substring("Locator@".length());
+        }
+        return selector.replace("internal:", "");
     }
 
     /** For an action on a locator with no extra descriptive text (e.g. a plain click) that returns a value. */

@@ -22,9 +22,8 @@ import io.appium.java_client.screenrecording.CanRecordScreen;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.Point;
 import org.openqa.selenium.ScreenOrientation;
-import org.openqa.selenium.interactions.PointerInput;
-import org.openqa.selenium.interactions.Sequence;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -215,15 +214,8 @@ public class DeviceUtils {
         Dimension size = driver.manage().window().getSize();
         int x = size.getWidth() / 4;
         log.info("Opening Notification Center");
-        PointerInput finger = new PointerInput(PointerInput.Kind.TOUCH, "finger");
-
-        Sequence swipe = new Sequence(finger, 0)
-                .addAction(finger.createPointerMove(Duration.ZERO, PointerInput.Origin.viewport(), x, 2))
-                .addAction(finger.createPointerDown(PointerInput.MouseButton.LEFT.asArg()))
-                .addAction(finger.createPointerMove(Duration.ofMillis(400), PointerInput.Origin.viewport(), x, size.getHeight() * 3 / 5))
-                .addAction(finger.createPointerUp(PointerInput.MouseButton.LEFT.asArg()));
-
-        driver.perform(List.of(swipe));
+        GestureUtils.dragAndDrop(new Point(x, 2), new Point(x, size.getHeight() * 3 / 5), Duration.ZERO,
+                Duration.ofMillis(400), driver);
     }
 
     /** Turns heads-up (banner) notifications on or off on the device with {@code udid}, through adb. */
@@ -318,8 +310,7 @@ public class DeviceUtils {
 
     private void tapNearTopQuietly(AppiumDriver driver) {
         try {
-            Dimension size = driver.manage().window().getSize();
-            GestureUtils.tapByCoordinates(size.getWidth() / 2, size.getHeight() / 10, driver);
+            GestureUtils.tapTopSafeArea(driver);
         } catch (Exception e) {
             log.warn("Failed to hide keyboard by tapping: {}", e.getMessage());
         }

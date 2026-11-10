@@ -7,9 +7,9 @@ import org.mockito.Mockito;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** A Playwright locator reads as its selector, without Playwright's own prefixes. */
-class WebPrettyPrinterTest {
+class WebFailureCatcherTest {
 
-    private final WebPrettyPrinter printer = new WebPrettyPrinter();
+    private final WebFailureCatcher catcher = new WebFailureCatcher();
 
     private Locator locatorToString(String value) {
         Locator locator = Mockito.mock(Locator.class);
@@ -19,18 +19,18 @@ class WebPrettyPrinterTest {
 
     @Test
     void aRoleLocatorLosesPlaywrightsPrefixes() {
-        assertThat(printer.describe(locatorToString("Locator@internal:role=button[name=\"LOGIN\"i]")))
+        assertThat(catcher.describe(locatorToString("Locator@internal:role=button[name=\"LOGIN\"i]")))
                 .isEqualTo("role=button[name=\"LOGIN\"i]");
     }
 
     @Test
     void aChainedLocatorKeepsEveryPart() {
-        assertThat(printer.describe(locatorToString("Locator@#rides >> internal:text=\"Save\"i >> nth=0")))
+        assertThat(catcher.describe(locatorToString("Locator@#rides >> internal:text=\"Save\"i >> nth=0")))
                 .isEqualTo("#rides >> text=\"Save\"i >> nth=0");
     }
 
     @Test
     void aLocatorWithoutThePrefixIsPrintedAsIs() {
-        assertThat(printer.describe(locatorToString("locator('#submit')"))).isEqualTo("locator('#submit')");
+        assertThat(catcher.describe(locatorToString("locator('#submit')"))).isEqualTo("locator('#submit')");
     }
 }

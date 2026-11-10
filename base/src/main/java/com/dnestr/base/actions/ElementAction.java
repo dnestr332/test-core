@@ -1,9 +1,9 @@
 package com.dnestr.base.actions;
 
 /**
- * Label describing what kind of step is being performed, passed to {@code FailureCatcher}/
- * {@code PrettyPrinter} purely for logging (the enum name is what shows up in the "action" part
- * of a log line, e.g. {@code CLICK  [GetByRoleLocator] role=button}) — it has no other behavior.
+ * Label describing what kind of step is being performed, passed to {@code FailureCatcher} purely for logging (the
+ * enum name is what shows up in the "action" part of a log line, e.g. {@code CLICK  0.10s  role=button}) — it has no
+ * other behavior.
  */
 public enum ElementAction {
 

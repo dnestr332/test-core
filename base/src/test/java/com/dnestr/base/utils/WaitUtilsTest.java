@@ -22,7 +22,8 @@ class WaitUtilsTest {
     @Test
     void waitUntil_timesOut_whenConditionNeverTrue() {
         assertThatThrownBy(() -> WaitUtils.waitUntil(() -> false, 1, 50, "never"))
-                .isInstanceOf(ConditionTimeoutException.class);
+                .isInstanceOf(ConditionTimeoutException.class)
+                .hasMessageContaining("never");
     }
 
     @Test
@@ -53,7 +54,8 @@ class WaitUtilsTest {
         assertThatThrownBy(() -> WaitUtils.waitUntilIgnoringExceptions(() -> {
             throw new IllegalStateException("never ready");
         }, 1, "always throws"))
-                .isInstanceOf(ConditionTimeoutException.class);
+                .isInstanceOf(ConditionTimeoutException.class)
+                .hasMessageContaining("always throws");
     }
 
     @Test
